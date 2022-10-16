@@ -2,7 +2,7 @@
   "name": "standonthestreet",
   "version": "1.0.0",
   "description": "",
-  "main": "test.js",
+  "main": "index.js",
   "scripts": {
     "dev": "cross-env ENV=dev node test.js"
   },
