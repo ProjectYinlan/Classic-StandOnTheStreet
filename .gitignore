@@ -1,3 +1,5 @@
 config.json
 temp/
 temp.*
+
+node_modules
