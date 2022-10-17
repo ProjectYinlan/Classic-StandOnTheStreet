@@ -9,15 +9,36 @@ const path = require('path');
 const Text2svg = require('text2svg');
 const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
 
-const { genAvatar, randomRange, formatTs } = require('./common');
+const { genAvatar, genRoundedRect, genHr, formatTs, randomRange } = require('./common');
 
-const avatarWidth = 64;
-const avatarLineHeight = 24;
+const footer = "Designed by null, modified by 93.";
+const content = "卖铺成功！";
+
+const contentFontSize = 18;
+const secondaryFontSize = 16;
+const iconSize = 24;
+const contentLineHeight = iconSize;
+const secondaryLineHeight = secondaryFontSize + 3;
 const cardWidth = 400;
-const cardPadding = 18;
+const cardPadding = 30;
+const cardChildrenMargin = 20;
+const avatarSize = 36;
+const innerCardWidth = cardWidth - cardPadding * 2;
+const innerCardPadding = 20;
+const innerCardChildrenMargin = 12;
+const innerCardChildrenWidth = cardWidth - cardPadding * 2 - innerCardPadding * 2;
+
 const avatarInlineCount = 5;
-const cardAvatarMargin = parseInt((cardWidth - avatarWidth * avatarInlineCount - cardPadding * 2) / (avatarInlineCount - 1));
-const cardLineHeight = avatarWidth + avatarLineHeight;
+const avatarItemMargin = 4;
+
+const avatarMargin = 8;
+const avatarItemWidth = avatarSize + avatarMargin * 2;
+const avatarItemHeight = avatarSize + secondaryLineHeight;
+
+let avatarItemLineCount;
+let avatarGroupHeight;
+
+let innerCardHeight;
 
 /**
  * 站街主方法
@@ -75,8 +96,8 @@ module.exports = async function (message, timestamp, filePath) {
     const othersCount = randomRange(0, othersCountMax);
     console.log('othersCount', othersCount);
     const others = {
-        count: othersCount,
-        score: randomRange(0, 5) * othersCount * 50
+        score: randomRange(0, 5) * othersCount * 50,
+        count: othersCount
     };
 
     // 接下来抽幸运群友
@@ -166,12 +187,10 @@ module.exports = async function (message, timestamp, filePath) {
             into: intoDetail
         }
     }, { upsert: true, new: true })
-
     if (friendsCount) {
 
         for (let [index, item] of Object.entries(outList)) {
             const { qq, data } = item;
-            console.log('outList', item);
             result = await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, {
                 $inc: {
                     score: - data.score
@@ -188,51 +207,54 @@ module.exports = async function (message, timestamp, filePath) {
 
     }
 
+    const cardDataObj = {
+        qq: message.sender.id,
+        nick: message.sender.memberName,
+        data: {
+            total: {
+                score: intoDetail.score,
+                count: intoDetail.others.count + friendsCount
+            },
+            others: intoDetail.others,
+            friends: {
+                score: intoDetail.score - intoDetail.others.score,
+                list: intoDetail.friends
+            },
+        },
+        score: newResult.score,
+        count: newResult.count.friends + newResult.count.others,
+        timestamp
+    }
+
+    console.log('cardDataObj', cardDataObj);
+
     messageChain.push({
         type: 'At',
         target: message.sender.id
     })
 
     let msg = '';
-    msg += `卖铺成功！\n`
-    msg += `本次开张共获得 ${intoDetail.score} 硬币\n`;
+    msg += `卖铺成功！`
 
     if (intoDetail.score == 0) {
-        msg += `啧啧啧，好惨啊\n`
+        msg += `啧啧啧，好惨啊`
     }
 
-    msg += `有 ${othersCount} 个路人，从路人获得工资 ${others.score} 硬币\n`;
-    if (friendsCount) {
-        msg += `有 ${intoDetail.friends.length} 个群友\n`;
-    }
+    msg += "\n";
     messageChain.push({
         type: 'Plain',
         text: msg
     })
 
     // 生成整图
-    if (friendsCount) {
+  
+    const imgBuffer = await genCard(cardDataObj);
 
-        console.log('friends', intoDetail.friends);
+    fs.writeFileSync(filePath, imgBuffer);
 
-        const imgBuffer = await genStandCard(intoDetail.friends);
-
-        fs.writeFileSync(filePath, imgBuffer);
-
-        messageChain.push({
-            type: 'Image',
-            path: filePath
-        })
-
-    }
-
-    msg = '';
-    msg += `卖铺时间：${formatTs(timestamp)}\n`;
-    msg += `现共接客：${newResult.count.friends + newResult.count.others} 人（路人${newResult.count.others} 群友${newResult.count.friends}）\n`;
-    msg += `现有工资：${newResult.score} 硬币`;
     messageChain.push({
-        type: 'Plain',
-        text: msg
+        type: 'Image',
+        path: filePath
     })
 
     message.reply(messageChain);
@@ -241,41 +263,447 @@ module.exports = async function (message, timestamp, filePath) {
 
 
 /**
- * 生成整图
- * @param {Array} dataObj
+ * 生成详情的条目
+ * @param {String} title 
+ * @param {Number} score 
+ * @param {Number} count 
  * @return {Buffer}
  */
- async function genStandCard(dataObj) {
+ async function genDetailItem (title, score, count) {
 
-    const avatarTotalCount = dataObj.length;
-    const cardLineCount = Math.ceil(avatarTotalCount / avatarInlineCount);
-    const cardHeight = cardLineCount * cardLineHeight + cardPadding * 2 + 64;
+    const scoreIcon = await sharp(path.resolve(__dirname, 'assets/stand_booked.png')).toBuffer();
+    const countIcon = await sharp(path.resolve(__dirname, 'assets/stand_person.png')).toBuffer();
+
+    const scoreIconLeft = 58;
+    const countIconLeft = 193;
+
+    const titleText = text2svg.toSVG(title, {
+        fontSize: contentFontSize
+    });
+    const scoreText = text2svg.toSVG(`${score} 硬币`, {
+        fontSize: contentFontSize
+    });
+    const countText = text2svg.toSVG(`${count} 人次`, {
+        fontSize: contentFontSize
+    });
+
+    const detailItem = await sharp({
+        create: {
+            width: innerCardChildrenWidth,
+            height: contentLineHeight,
+            channels: 4,
+            background: {
+                r: 0,
+                g: 0,
+                b: 0,
+                alpha: 0
+            }
+        }
+    })
+        .composite([
+            {
+                input: Buffer.from(titleText.svg),
+                top: 0,
+                left: 0
+            },
+            {
+                input: scoreIcon,
+                top: 0,
+                left: scoreIconLeft
+            },
+            {
+                input: Buffer.from(scoreText.svg),
+                top: 0,
+                left: scoreIconLeft + iconSize + 6
+            },
+            {
+                input: countIcon,
+                top: 0,
+                left: countIconLeft
+            },
+            {
+                input: Buffer.from(countText.svg),
+                top: 0,
+                left: countIconLeft + iconSize + 6
+            }
+        ])
+        .png()
+        .toBuffer()
+
+    return detailItem;
+
+}
+
+/**
+ * 生成头像组卡片
+ * @param {Array} friendsList 
+ */
+async function genAvatarGroup (friendsList) {
+    
+    avatarItemLineCount = Math.ceil(friendsList.length / avatarInlineCount);
+    avatarGroupHeight = avatarItemLineCount * avatarItemHeight + (avatarItemLineCount - 1) * avatarMargin;
+
+    let avatarItemList = [];
+
+    for (const [index, item] of Object.entries(friendsList)) {
+
+        const { qq, score } = item;
+
+        const avatarItem = await genAvatarItem(qq, score);
+
+        avatarItemList.push({
+            input: avatarItem,
+            top: Math.floor(index / avatarInlineCount) * ( avatarItemHeight + avatarMargin ),
+            left: Math.ceil( (index % avatarInlineCount) * (avatarItemMargin + avatarItemWidth) )
+        })
+
+    }
+
+    const avatarGroup = await sharp({
+        create: {
+            width: innerCardChildrenWidth,
+            height: avatarGroupHeight,
+            channels: 4,
+            background: {
+                r: 0,
+                g: 0,
+                b: 0,
+                alpha: 0
+            }
+        }
+    })
+        .composite(avatarItemList)
+        .png()
+        .toBuffer()
+
+    return avatarGroup;
+
+}
+
+/**
+ * 生成头像元素
+ * @param {Number} qq 
+ * @param {Number} score 
+ * @return {Buffer}
+ */
+async function genAvatarItem (qq, score) {
+
+    const avatar = await genAvatar(qq, avatarSize);
+
+    const scoreText = text2svg.toSVG(score.toString(), {
+        fontSize: secondaryFontSize
+    });
+
+    const avatarItem = await sharp({
+        create: {
+            width: avatarItemWidth,
+            height: avatarItemHeight,
+            channels: 4,
+            background: {
+                r: 0,
+                g: 0,
+                b: 0,
+                alpha: 0
+            }
+        }
+    })
+        .composite([
+            {
+                input: avatar,
+                top: 0,
+                left: avatarMargin
+            },
+            {
+                input: Buffer.from(scoreText.svg),
+                top: avatarSize,
+                left: Math.ceil( ( avatarItemWidth - scoreText.width ) / 2 )
+            }
+        ])
+        .png()
+        .toBuffer()
+
+    return avatarItem;
+
+}
+
+/**
+ * 生成 inner 卡片
+ * @param {Object} dataObj 
+ * @return {Buffer}
+ */
+async function genInnerCard (dataObj) {
 
     let compositeList = [];
 
-    // 绘制标题
-    const title = text2svg.toSVG("来自群友的光临", {
-        fontSize: 32
-    });
-    compositeList.push({
-        input: Buffer.from(title.svg),
-        top: cardPadding + 16,
-        left: cardPadding
-    })
+    // 按照顺序走的一个变量
+    let currentTop = innerCardPadding;
 
-    // 绘制头像
-    for (let [index, item] of Object.entries(dataObj)) {
-        const { qq, score } = item;
-        console.log(score);
-        const avatarItem = await genStandAvatarItem(qq, score);
+    const { total, others, friends } = dataObj;
+    
+    // 生成分割线
+    const hrItem = await genHr(innerCardChildrenWidth, "#bdbdbd", 2);
+    
+    // 数据
+
+    // 总计
+    const totalItem = await genDetailItem("总计", total.score, total.count);
+    compositeList.push({
+        input: totalItem,
+        top: currentTop,
+        left: innerCardPadding
+    })
+    currentTop += contentLineHeight + innerCardChildrenMargin;
+    
+    
+    // 路人
+    if (others) {
+
+        // 分割线
         compositeList.push({
-            input: avatarItem,
-            top: Math.floor(index / avatarInlineCount) * cardLineHeight + cardPadding + 64,
-            left: parseInt(cardPadding + (index % avatarInlineCount) * (cardAvatarMargin + avatarWidth))
+            input: hrItem,
+            top: currentTop,
+            left: innerCardPadding
         })
+        currentTop += innerCardChildrenMargin;
+
+        const othersItem = await genDetailItem("路人", others.score, others.count);
+        compositeList.push({
+            input: othersItem,
+            top: currentTop,
+            left: innerCardPadding
+        })
+        currentTop += contentLineHeight + innerCardChildrenMargin;
+        
+    }
+    
+    // 群友
+    if (friends) {
+
+        // 分割线
+        compositeList.push({
+            input: hrItem,
+            top: currentTop,
+            left: innerCardPadding
+        })
+        currentTop += innerCardChildrenMargin;
+        
+        const friendsItem = await genDetailItem("群友", friends.score, friends.list.length);
+        compositeList.push({
+            input: friendsItem,
+            top: currentTop,
+            left: innerCardPadding
+        })
+        currentTop += contentLineHeight + innerCardChildrenMargin;
+
+        // 头像组
+        const avatarGroupItem = await genAvatarGroup(friends.list);
+        compositeList.push({
+            input: avatarGroupItem,
+            top: currentTop,
+            left: innerCardPadding
+        })
+        currentTop += avatarGroupHeight + innerCardChildrenMargin;
+
     }
 
-    // 创建画布
+    // 使用 currentTop 计算 height
+    innerCardHeight = currentTop - innerCardChildrenMargin + innerCardPadding;
+
+    // 圆角矩形
+    const roundedRect = await genRoundedRect(innerCardWidth, innerCardHeight, 15, "#bdbdbd", 2);
+    compositeList.push({
+        input: roundedRect,
+        top: 0,
+        left: 0
+    })
+
+    const innerCard = await sharp ({
+        create: {
+            width: innerCardWidth,
+            height: innerCardHeight,
+            channels: 4,
+            background: {
+                r: 255,
+                g: 255,
+                b: 255,
+                alpha: 1
+            }
+        }
+    })
+        .composite(compositeList)
+        .png()
+        .toBuffer()
+
+    return innerCard;
+
+}
+
+/**
+ * 生成数据信息条目
+ * @param {Number} score 
+ * @param {Number} count 
+ */
+async function genDataItem (score, count) {
+
+    const scoreIcon = await sharp(path.resolve(__dirname, 'assets/stand_wallet.png')).toBuffer();
+    const countIcon = await sharp(path.resolve(__dirname, 'assets/stand_person_total.png')).toBuffer();
+
+    const scoreText = text2svg.toSVG(`${score} 硬币`, {
+        fontSize: contentFontSize
+    });
+
+    const scoreIconLeft = Math.ceil( ( innerCardWidth / 2 - ( iconSize + 2 + scoreText.width ) ) / 2 );
+    const scoreTextLeft = scoreIconLeft + iconSize + 2;
+    
+    const countText = text2svg.toSVG(`${count} 人次`, {
+        fontSize: contentFontSize
+    });
+    
+    const countIconLeft = Math.ceil( innerCardWidth / 2 + ( innerCardWidth / 2 - ( iconSize + 2 + countText.width ) ) / 2 );
+    const countTextLeft = countIconLeft + iconSize + 2;
+
+    const dataItem = await sharp({
+        create: {
+            width: innerCardWidth,
+            height: contentLineHeight,
+            channels: 4,
+            background: {
+                r: 0,
+                g: 0,
+                b: 0,
+                alpha: 0
+            }
+        }
+    })
+        .composite([
+            {
+                input: scoreIcon,
+                top: 0,
+                left: scoreIconLeft
+            },
+            {
+                input: Buffer.from(scoreText.svg),
+                top: 0,
+                left: scoreTextLeft
+            },
+            {
+                input: countIcon,
+                top: 0,
+                left: countIconLeft
+            },
+            {
+                input: Buffer.from(countText.svg),
+                top: 0,
+                left: countTextLeft
+            }
+        ])
+        .png()
+        .toBuffer()
+
+    return dataItem;
+
+}
+
+/**
+ * 生成整张卡片
+ * @param {Object} dataObj
+ */
+async function genCard (dataObj) {
+
+    let compositeList = [];
+    let currentTop = cardPadding;
+
+    const { qq, nick, data, score, count, timestamp } = dataObj;
+
+    // 生成头像
+    const avatar = await genAvatar(qq, avatarSize);
+    compositeList.push({
+        input: avatar,
+        top: currentTop,
+        left: cardPadding
+    })
+    currentTop += avatarSize + cardChildrenMargin;
+
+    // 生成昵称
+    const nickTextTemp = text2svg.toSVG(nick, {
+        fontSize: contentFontSize
+    });
+
+    // 判断昵称宽度
+    const nickTextMaxWidth = cardWidth - cardPadding * 2 - avatarSize - 12;
+
+    let nickText;
+
+    if (nickTextTemp.width > nickTextMaxWidth) {
+        nickText = await sharp(Buffer.from(nickTextTemp.svg)).resize(nickTextMaxWidth).png().toBuffer();
+    } else {
+        nickText = Buffer.from(nickTextTemp.svg);
+    }
+
+    const nickTextWidth = (await sharp(nickText).metadata()).width;
+
+    const nickTop = Math.ceil( cardPadding + ( avatarSize - nickTextWidth ) / 2 )
+    const nickLeft = cardPadding + avatarSize + 12;
+
+    compositeList.push({
+        input: nickText,
+        top: nickTop,
+        left: nickLeft
+    })
+
+    // 生成文案
+    const contentText = text2svg.toSVG(content, {
+        fontSize: contentFontSize
+    });
+    const contentTop = cardPadding + avatarSize + cardChildrenMargin;
+    compositeList.push({
+        input: Buffer.from(contentText.svg),
+        top: currentTop,
+        left: cardPadding
+    })
+    currentTop += contentLineHeight + cardChildrenMargin;
+    
+    // 生成 inner 卡片
+    const innerCard = await genInnerCard(data);
+    compositeList.push({
+        input: innerCard,
+        top: currentTop,
+        left: cardPadding
+    })
+    currentTop += (await sharp(innerCard).metadata()).height + cardChildrenMargin;
+
+    // 生成数据元素
+    const dataItem = await genDataItem(score, count);
+    compositeList.push({
+        input: dataItem,
+        top: currentTop,
+        left: cardPadding
+    })
+    currentTop += contentLineHeight + cardChildrenMargin;
+
+    // 生成页脚
+    const footerText = text2svg.toSVG(footer, {
+        fontSize: secondaryFontSize
+    })
+    compositeList.push({
+        input: Buffer.from(footerText.svg),
+        top: currentTop,
+        left: Math.ceil( ( cardWidth - footerText.width ) / 2 )
+    })
+    currentTop += secondaryLineHeight + 2;
+    
+    const tsText = text2svg.toSVG(formatTs(timestamp), {
+        fontSize: secondaryFontSize
+    })
+    compositeList.push({
+        input: Buffer.from(tsText.svg),
+        top: currentTop,
+        left: Math.ceil( ( cardWidth - tsText.width ) / 2 )
+    })
+    currentTop += secondaryLineHeight + cardChildrenMargin;
+    
+    const cardHeight = currentTop;
+    
     const card = await sharp({
         create: {
             width: cardWidth,
@@ -291,61 +719,8 @@ module.exports = async function (message, timestamp, filePath) {
     })
         .composite(compositeList)
         .png()
-        // .toFile(outputPath)
         .toBuffer()
 
     return card;
 
-}
-
-
-
-/**
- * 生成头像元素
- * @param {Number} qq QQ
- * @param {Number} score 扣钱！
- * @returns {Buffer} 返回生成的图像
- */
- async function genStandAvatarItem(qq, score) {
-
-    score = parseInt(score);
-
-    const avatar = await genAvatar(qq, avatarWidth);
-
-    // 生成文本
-    const scoreText = text2svg.toSVG(score.toString(), {
-        fontSize: avatarLineHeight - 8
-    });
-
-    // 生成一个人的这个那个这个 item
-    const avatarItem = await sharp({
-        create: {
-            width: avatarWidth,
-            height: avatarWidth + avatarLineHeight,
-            channels: 4,
-            background: {
-                r: 255,
-                g: 255,
-                b: 255,
-                alpha: 0
-            }
-        }
-    })
-        .composite([
-            {
-                input: avatar,
-                top: 0,
-                left: 0
-            },
-            {
-                input: Buffer.from(scoreText.svg),
-                top: avatarWidth + 4,
-                left: Math.ceil((avatarWidth - scoreText.width) / 2)
-            }
-        ])
-        .png()
-        .toBuffer()
-    // .toFile(outputPath)
-
-    return avatarItem;
 }

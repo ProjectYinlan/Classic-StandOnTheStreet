@@ -85,9 +85,9 @@ async function genSalaryCard(dataObj) {
     const dataIntroFontSize = 18;
     const tsTextFontSize = 16;
 
-    const dataScoreIcon = await sharp(path.resolve(__dirname, 'assets/wallet.png')).toBuffer();
-    const dataTotalCountIcon = await sharp(path.resolve(__dirname, 'assets/person_total.png')).toBuffer();
-    const dataFriendsCountIcon = await sharp(path.resolve(__dirname, 'assets/person_friends.png')).toBuffer();
+    const dataScoreIcon = await sharp(path.resolve(__dirname, 'assets/info_wallet.png')).toBuffer();
+    const dataTotalCountIcon = await sharp(path.resolve(__dirname, 'assets/info_person_total.png')).toBuffer();
+    const dataFriendsCountIcon = await sharp(path.resolve(__dirname, 'assets/info_person_friends.png')).toBuffer();
 
     const cardPadding = 30;
     const avatarTop = cardPadding;

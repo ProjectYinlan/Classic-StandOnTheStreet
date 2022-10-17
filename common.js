@@ -40,6 +40,39 @@ module.exports = {
         return avatar;
     },
 
+    /**
+     * 生成圆角矩形
+     * @param {Number} width 
+     * @param {Number} height 
+     * @param {Number} rx 
+     * @param {String} colour 
+     * @param {Number} weight
+     * @return {Buffer}
+     */
+    async genRoundedRect(width, height, rx, colour, weight) {
+
+        if (!rx) rx = 10;
+        if (!colour) colour = "#BDBDBD";
+
+        return Buffer.from(`<svg width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" fill="none" stroke="${colour}" stroke-width="${weight}" rx="${rx}"></rect></svg>`);
+
+    },
+
+    /**
+     * 生成横向分割线
+     * @param {Number} length
+     * @param {String} colour 
+     * @param {Number} weight
+     * @return {Buffer}
+     */
+    async genHr(length, colour, weight) {
+
+        if (!colour) colour = "#BDBDBD";
+        if (!weight) weight = 1;
+
+        return Buffer.from(`<svg width="${length}" height="${weight}"><line x1="0" y1="0" x2="${length}" y2="0" stroke="${colour}" stroke-width="${weight}"/></svg>`);
+
+    },
 
     /**
      * 随机数
