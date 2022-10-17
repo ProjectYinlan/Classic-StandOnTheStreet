@@ -456,7 +456,7 @@ async function genInnerCard (dataObj) {
     
     
     // 路人
-    if (others) {
+    if (others.count != 0) {
 
         // 分割线
         compositeList.push({
