@@ -187,7 +187,7 @@ module.exports = async function (message, timestamp, filePath) {
             into: intoDetail
         }
     }, { upsert: true, new: true })
-    if (friendsCount) {
+    if (outList.length != 0) {
 
         for (let [index, item] of Object.entries(outList)) {
             const { qq, data } = item;
@@ -213,7 +213,7 @@ module.exports = async function (message, timestamp, filePath) {
         data: {
             total: {
                 score: intoDetail.score,
-                count: intoDetail.others.count + friendsCount
+                count: intoDetail.others.count + outList.length
             },
             others: intoDetail.others,
             friends: {
@@ -487,13 +487,17 @@ async function genInnerCard (dataObj) {
         })
         currentTop += innerCardChildrenMargin;
         
-        const friendsItem = await genDetailItem("群友", friends.score, friends.list.length);
-        compositeList.push({
-            input: friendsItem,
-            top: currentTop,
-            left: innerCardPadding
-        })
-        currentTop += contentLineHeight + innerCardChildrenMargin;
+        if (friends.list) {
+            
+            const friendsItem = await genDetailItem("群友", friends.score, friends.list.length);
+            compositeList.push({
+                input: friendsItem,
+                top: currentTop,
+                left: innerCardPadding
+            })
+            currentTop += contentLineHeight + innerCardChildrenMargin;
+
+        }
 
         // 头像组
         const avatarGroupItem = await genAvatarGroup(friends.list);
