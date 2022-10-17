@@ -496,17 +496,17 @@ async function genInnerCard (dataObj) {
                 left: innerCardPadding
             })
             currentTop += contentLineHeight + innerCardChildrenMargin;
-
+            
+            // 头像组
+            const avatarGroupItem = await genAvatarGroup(friends.list);
+            compositeList.push({
+                input: avatarGroupItem,
+                top: currentTop,
+                left: innerCardPadding
+            })
+            currentTop += avatarGroupHeight + innerCardChildrenMargin;
+            
         }
-
-        // 头像组
-        const avatarGroupItem = await genAvatarGroup(friends.list);
-        compositeList.push({
-            input: avatarGroupItem,
-            top: currentTop,
-            left: innerCardPadding
-        })
-        currentTop += avatarGroupHeight + innerCardChildrenMargin;
 
     }
 
