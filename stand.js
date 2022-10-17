@@ -477,7 +477,7 @@ async function genInnerCard (dataObj) {
     }
     
     // 群友
-    if (friends) {
+    if (friends.list) {
 
         // 分割线
         compositeList.push({
@@ -505,7 +505,7 @@ async function genInnerCard (dataObj) {
                 left: innerCardPadding
             })
             currentTop += avatarGroupHeight + innerCardChildrenMargin;
-            
+
         }
 
     }
