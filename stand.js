@@ -640,9 +640,9 @@ async function genCard (dataObj) {
         nickText = Buffer.from(nickTextTemp.svg);
     }
 
-    const nickTextWidth = (await sharp(nickText).metadata()).width;
+    const nickTextHeight = (await sharp(nickText).metadata()).height;
 
-    const nickTop = Math.ceil( cardPadding + ( avatarSize - nickTextWidth ) / 2 )
+    const nickTop = Math.ceil( cardPadding + ( avatarSize - nickTextHeight ) / 2 )
     const nickLeft = cardPadding + avatarSize + 12;
 
     compositeList.push({
