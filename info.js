@@ -21,7 +21,7 @@ module.exports = async function (message, timestamp, filePath) {
     result = await StandOnTheStreet.aggregate([
         { $match: { qq: message.sender.id, group: message.sender.group.id } },
         { $unwind: "$into" },
-        { $project: { into: 1, count: 1, stats: 1 } },
+        { $project: { into: 1, count: 1, stats: 1, score: 1 } },
         { $sort: { "into.ts": -1 } },
         { $limit: 1 }
     ]);
@@ -39,8 +39,7 @@ module.exports = async function (message, timestamp, filePath) {
         return;
     }
 
-    const { count, into, stats } = result[0];
-    const { score } = into;
+    const { count, score, stats } = result[0];
 
     const totalCount = count.friends + count.others;
     const friendsCount = count.friends;
@@ -131,10 +130,10 @@ async function genSalaryCard(dataObj) {
     const dataScoreText = text2svg.toSVG(`${score} 硬币`, {
         fontSize: dataIntroFontSize
     });
-    const dataTotalCountText = text2svg.toSVG(`${totalCount} 人次`, {
+    const dataTotalCountText = text2svg.toSVG(`${totalCount} 次`, {
         fontSize: dataIntroFontSize
     });
-    const dataFriendsCountText = text2svg.toSVG(`${friendsCount} 次群友`, {
+    const dataFriendsCountText = text2svg.toSVG(`${friendsCount} 群友`, {
         fontSize: dataIntroFontSize
     });
 
