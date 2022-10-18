@@ -99,6 +99,18 @@ module.exports = {
 
         var newDate = year + "-" + mon + "-" + data + " " + hour + ":" + min + ":" + seon;
         return newDate;
+    },
+
+    /**
+     * 数组内随机
+     * @param {Array} array 
+     */
+    randomArrayElem(array) {
+
+        if (typeof array != 'object') return;
+
+        return array[ Math.floor(Math.random() * (array.length - 1)) ];
+
     }
 
 }

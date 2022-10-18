@@ -53,7 +53,11 @@ const StandOnTheStreetSchema = new Schema({
         qq: Number,
         score: Number,
         ts: Number
-    }]
+    }],
+    stats: {
+        into: Number,
+        out: Number
+    }
 });
 const StandOnTheStreet = mongoose.model('StandOnTheStreet', StandOnTheStreetSchema);
 

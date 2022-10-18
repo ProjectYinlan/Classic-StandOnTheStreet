@@ -9,10 +9,11 @@ const path = require('path');
 const Text2svg = require('text2svg');
 const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
 
-const { genAvatar, genRoundedRect, genHr, formatTs, randomRange } = require('./common');
+const { genAvatar, genRoundedRect, genHr, formatTs, randomRange, randomArrayElem } = require('./common');
+const contents = require('./content.json').stand;
 
 const footer = "Designed by null, modified by 93.";
-const content = "卖铺成功！";
+let content = '';
 
 const contentFontSize = 18;
 const secondaryFontSize = 16;
@@ -181,7 +182,8 @@ module.exports = async function (message, timestamp, filePath) {
         $inc: {
             score: intoDetail.score,
             "count.friends": friendsCount,
-            "count.others": others.count
+            "count.others": others.count,
+            "stats.into": intoDetail.score
         },
         $addToSet: {
             into: intoDetail
@@ -193,7 +195,8 @@ module.exports = async function (message, timestamp, filePath) {
             const { qq, data } = item;
             result = await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, {
                 $inc: {
-                    score: - data.score
+                    score: 0 - data.score,
+                    "stats.out": data.score
                 },
                 $addToSet: {
                     out: {
@@ -226,6 +229,10 @@ module.exports = async function (message, timestamp, filePath) {
         timestamp
     }
 
+    // 判断人均
+    const per = Math.ceil( cardDataObj.data.total.score / cardDataObj.data.total.count );
+    content = per == 0 ? randomArrayElem(contents.succeed.none) : randomArrayElem(contents.succeed.normal);
+
     console.log('cardDataObj', cardDataObj);
 
     messageChain.push({
@@ -234,13 +241,7 @@ module.exports = async function (message, timestamp, filePath) {
     })
 
     let msg = '';
-    msg += `卖铺成功！`
-
-    if (intoDetail.score == 0) {
-        msg += `啧啧啧，好惨啊`
-    }
-
-    msg += "\n";
+    msg += content + "\n";
     messageChain.push({
         type: 'Plain',
         text: msg
