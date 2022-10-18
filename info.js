@@ -21,7 +21,7 @@ module.exports = async function (message, timestamp, filePath) {
     result = await StandOnTheStreet.aggregate([
         { $match: { qq: message.sender.id, group: message.sender.group.id } },
         { $unwind: "$into" },
-        { $project: { into: 1, count: 1 } },
+        { $project: { into: 1, count: 1, stats: 1 } },
         { $sort: { "into.ts": -1 } },
         { $limit: 1 }
     ]);
