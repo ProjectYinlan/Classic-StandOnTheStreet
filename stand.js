@@ -53,7 +53,7 @@ module.exports = async function (message, timestamp, filePath) {
 
     let messageChain = [];
 
-    // 先判断是否有记录
+    // 判断是否有记录以及时限
     result = await StandOnTheStreet.findOne({ qq: message.sender.id, group: message.sender.group.id });
     if (!result) {
 
@@ -69,10 +69,35 @@ module.exports = async function (message, timestamp, filePath) {
             out: []
         });
 
-        message.reply({
-            type: 'Plain',
-            text: "恭喜您加入本群站街行列"
-        });
+        message.reply([
+            {
+                type: 'At',
+                target: message.sender.id
+            },
+            {
+                type: 'Plain',
+                text: "恭喜您加入本群站街行列"
+            }
+        ]);
+
+    } else if (result.nextTime > ts) {
+
+        content = randomArrayElem(contents.many) + '\n';
+
+        content += `下次时间为：${formatTs(new Date(result.nextTime))}`;
+
+        message.reply([
+            {
+                type: 'At',
+                target: message.sender.id
+            },
+            {
+                type: 'Plain',
+                text: content
+            }
+        ]);
+
+        return;
 
     }
 
@@ -187,6 +212,9 @@ module.exports = async function (message, timestamp, filePath) {
         },
         $addToSet: {
             into: intoDetail
+        },
+        $set: {
+            nextTime: ts + 12 * 60 * 60 * 1000
         }
     }, { upsert: true, new: true })
     if (outList.length != 0) {

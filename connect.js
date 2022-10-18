@@ -57,7 +57,8 @@ const StandOnTheStreetSchema = new Schema({
     stats: {
         into: Number,
         out: Number
-    }
+    },
+    nextTime: Number
 });
 const StandOnTheStreet = mongoose.model('StandOnTheStreet', StandOnTheStreetSchema);
 
