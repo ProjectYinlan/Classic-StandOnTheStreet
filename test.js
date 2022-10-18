@@ -2,7 +2,7 @@
 
 const main = require('./index');
 
-const text = process.argv.indexOf('-t') == -1 ? "站街" : process.argv[process.argv.indexOf('-t') + 1];
+const text = process.argv.indexOf('-t') == -1 ? "我的站街工资" : process.argv[process.argv.indexOf('-t') + 1];
 
 console.log("输入", text);
 
