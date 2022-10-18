@@ -39,12 +39,12 @@ module.exports = async function (message, timestamp, filePath) {
         return;
     }
 
-    const { count, into } = result[0];
+    const { count, into, stats } = result[0];
     const { score } = into;
 
     const totalCount = count.friends + count.others;
     const friendsCount = count.friends;
-    const per = Math.ceil(score / totalCount);
+    const per = Math.ceil(stats.into / totalCount);
 
     const card = await genSalaryCard({
         qq: message.sender.id,
