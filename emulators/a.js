@@ -1,7 +1,7 @@
 module.exports = {
     bot: {
         getGroupMemberList() {
-            return new Promise ((resolve) => {
+            return new Promise((resolve) => {
                 resolve([
                     {
                         id: 27788207,
@@ -404,6 +404,20 @@ module.exports = {
                         group: { id: 926344646, name: '親衛隊', permission: 'MEMBER' }
                     }
                 ]);
+            })
+        },
+        getGroupMemberInfo() {
+            return new Promise((resolve) => {
+                resolve({
+                    id: 1285419578,
+                    memberName: '洇岚（霜叁限定）',
+                    specialTitle: '',
+                    permission: 'OWNER',
+                    joinTimestamp: 1644823485,
+                    lastSpeakTimestamp: 1666116291,
+                    muteTimeRemaining: 0,
+                    group: { id: 259565487, name: '洇岚窝', permission: 'MEMBER' }
+                })
             })
         }
     }

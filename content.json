@@ -13,5 +13,35 @@
         "many": [
             "距上次站街不足12小时，小心β烂掉！"
         ]
+    },
+    "rank": {
+        "count": {
+            "name": "站街人气榜",
+            "unitIcon": "rank_count.png",
+            "title": [
+                "最受欢迎β"
+            ]
+        },
+        "score": {
+            "name": "站街富豪榜",
+            "unitIcon": "rank_score.png",
+            "title": [
+                "站街发家第一人"
+            ]
+        },
+        "make_score": {
+            "name": "站街赚钱榜",
+            "unitIcon": "rank_per_person.png",
+            "title": [
+                "金β！"
+            ]
+        },
+        "lose_score": {
+            "name": "站街赔钱榜",
+            "unitIcon": "rank_per_person.png",
+            "title": [
+                "赔钱货！"
+            ]
+        }
     }
 }

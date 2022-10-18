@@ -12,6 +12,9 @@ const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_M
 const { genAvatar, genRoundedRect, genHr, formatTs, randomRange, randomArrayElem } = require('./common');
 const contents = require('./content.json').stand;
 
+const scoreIcon = fs.readFileSync(path.resolve(__dirname, 'assets/stand_booked.png'));
+const countIcon = fs.readFileSync(path.resolve(__dirname, 'assets/stand_person.png'));
+
 const footer = "Designed by null, modified by 93.";
 let content = '';
 
@@ -299,9 +302,6 @@ module.exports = async function (message, timestamp, filePath) {
  * @return {Buffer}
  */
  async function genDetailItem (title, score, count) {
-
-    const scoreIcon = await sharp(path.resolve(__dirname, 'assets/stand_booked.png')).toBuffer();
-    const countIcon = await sharp(path.resolve(__dirname, 'assets/stand_person.png')).toBuffer();
 
     const scoreIconLeft = 58;
     const countIconLeft = 193;

@@ -9,6 +9,7 @@ const path = require('path');
 
 const stand = require('./stand');
 const info = require('./info');
+const rank = require('./rank');
 
 /**
  * 入口
@@ -48,6 +49,19 @@ async function index(message) {
 
     if (msg == "我的站街工资") {
         info(message, timestamp, filePath);
+    }
+
+    if (msg == "站街人气榜") {
+        rank(message, timestamp, filePath, 'count');
+    }
+    if (msg == "站街富豪榜") {
+        rank(message, timestamp, filePath, 'score');
+    }
+    if (msg == "站街赚钱榜") {
+        rank(message, timestamp, filePath, 'make_score');
+    }
+    if (msg == "站街赔钱榜") {
+        rank(message, timestamp, filePath, 'lose_score');
     }
 
 }
