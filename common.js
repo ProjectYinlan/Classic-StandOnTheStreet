@@ -7,18 +7,34 @@ module.exports = {
 
     /**
      * 生成头像
-     * @param {Number} qq QQ
-     * @param {Number} size resize
+     * @param {Number} id
+     * @param {Number} size
+     * @param {String} type
      * @returns {Buffer}
      */
-    async genAvatar(qq, size) {
+    async genAvatar(id, size, type) {
 
-        if (!size) {
-            size = 64
+        if (!size) size = 64;
+        if (!type) type = 'friend';
+
+        let apiUrl = '';
+
+        switch (type) {
+
+            case 'friend':
+                apiUrl = `https://q1.qlogo.cn/g?b=qq&nk=${id}&s=640`;
+                break;
+
+            case 'group':
+                apiUrl = `https://p.qlogo.cn/gh/${id}/${id}/640/`;
+                break;
+        
+            default:
+                return;
         }
 
         // 获取头像
-        const input = await axios.get(`https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=640`, {
+        const input = await axios.get(apiUrl, {
             responseType: 'arraybuffer'
         }).then(response => Buffer.from(response.data, 'binary'));
 

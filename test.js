@@ -2,7 +2,7 @@
 
 const main = require('./index');
 
-const text = process.argv.indexOf('-t') == -1 ? "站街" : process.argv[process.argv.indexOf('-t') + 1];
+const text = process.argv.indexOf('-t') == -1 ? "站街赔钱榜" : process.argv[process.argv.indexOf('-t') + 1];
 
 console.log("输入", text);
 
@@ -14,13 +14,13 @@ const message = {
     ],
     sender: {
       id: 1285419578,
-      memberName: '孩子',
+      memberName: '玖叁',
       specialTitle: '',
       permission: 'MEMBER',
       joinTimestamp: 1657947329,
       lastSpeakTimestamp: 1665906810,
       muteTimeRemaining: 0,
-      group: { id: 926344646, name: '親衛隊', permission: 'MEMBER' }
+      group: { id: 662595092, name: '大寄天下', permission: 'MEMBER' }
     },
     reply(messageChain) {
         console.log('replyFunction', messageChain);
