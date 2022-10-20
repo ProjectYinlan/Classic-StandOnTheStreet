@@ -3,9 +3,8 @@ const moduleName = "StandOnTheStreet";
 
 const $ = process.env.ENV == 'dev' ? require('./emulators/base') : require('../base');
 
-const sharp = require('sharp');
-const fs = require('fs');
 const path = require('path');
+const s2t = require('chinese-s2t');
 
 const stand = require('./stand');
 const info = require('./info');
@@ -28,6 +27,8 @@ async function index(message) {
     })
     
     if (!msg.includes("站街")) return;
+
+    msg = s2t.t2s(msg);
     
     if (msg == "关闭站街") {
         $.setModuleStatus(message, moduleName, 0);
