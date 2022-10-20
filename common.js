@@ -127,6 +127,17 @@ module.exports = {
 
         return array[ Math.floor(Math.random() * (array.length - 1)) ];
 
+    },
+
+    /**
+     * 获取当日零时 Date
+     * @param {Date} dat
+     * @return {Date}
+     */
+    getDayDate(dat) {
+
+        return new Date(`${dat.getFullYear()}-${dat.getMonth() + 1}-${dat.getDate()}`);
+
     }
 
 }

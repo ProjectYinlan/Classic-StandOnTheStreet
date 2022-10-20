@@ -9,8 +9,9 @@ const path = require('path');
 const Text2svg = require('text2svg');
 const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
 
-const { genAvatar, genRoundedRect, genHr, formatTs, randomRange, randomArrayElem } = require('./common');
+const { genAvatar, genRoundedRect, genHr, formatTs, randomRange, randomArrayElem, getDayDate } = require('./common');
 const contents = require('./content.json').stand;
+const { version } = require('./package.json');
 
 const scoreIcon = fs.readFileSync(path.resolve(__dirname, 'assets/stand_booked.png'));
 const countIcon = fs.readFileSync(path.resolve(__dirname, 'assets/stand_person.png'));
@@ -136,11 +137,40 @@ module.exports = async function (message, timestamp, filePath) {
     let friendsScore = 0;
 
     // 首先要确定我们只能抽有钱的，而且不是自己
+    // 而且是今天造访他人小于2次的
     const candidateList = await StandOnTheStreet.find({
         qq: { $ne: message.sender.id },
         group: message.sender.group.id,
         score: { $gt: 0 }
-    }).then(r => r.map(e => e.qq));
+    }).then(r => {
+
+        let result = [];
+
+        // 获取今日零时的ts
+        const dayTs = getDayDate(timestamp).getTime();
+
+        // 遍历结果
+        r.forEach(e => {
+
+            // 获取造访记录
+            const { out } = e;
+
+            // 日造访计数
+            let dayOut = 0;
+
+            out.forEach(e1 => {
+
+                if (e1.ts && e1.ts >= dayTs) dayOut ++;
+
+            })
+
+            if (dayOut < 2) result.push(e);
+
+        })
+
+        return result;
+        
+    });
 
     // 还要判断能抽的是否大于了本身人数
     friendsCount = candidateList.length < friendsCount ? candidateList.length : friendsCount;
@@ -161,7 +191,7 @@ module.exports = async function (message, timestamp, filePath) {
             const selected = candidateList[randomRange(0, candidateList.length - 1)];
             j++;
             if (friendList.indexOf(selected) == -1) {
-                const score = randomRange(0, 10) * 50;
+                const score = randomRange(0, 6) * 50;
                 return {
                     // into 是针对站街人的 into 生成的
                     into: {
@@ -732,6 +762,16 @@ async function genCard (dataObj) {
         input: Buffer.from(tsText.svg),
         top: currentTop,
         left: Math.ceil( ( cardWidth - tsText.width ) / 2 )
+    })
+    currentTop += secondaryLineHeight + 2;
+    
+    const versionText = text2svg.toSVG(version, {
+        fontSize: secondaryFontSize
+    })
+    compositeList.push({
+        input: Buffer.from(versionText.svg),
+        top: currentTop,
+        left: Math.ceil( ( cardWidth - versionText.width ) / 2 )
     })
     currentTop += secondaryLineHeight + cardChildrenMargin;
     
