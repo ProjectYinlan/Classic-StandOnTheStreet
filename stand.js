@@ -164,7 +164,7 @@ module.exports = async function (message, timestamp, filePath) {
 
             })
 
-            if (dayOut < 2) result.push(e);
+            if (dayOut < 2) result.push(e.qq);
 
         })
 
