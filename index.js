@@ -14,7 +14,7 @@ const rank = require('./rank');
  * 入口
  */
 async function index(message) {
-    
+
     if (message.type != 'GroupMessage') return;
 
     const { messageChain } = message;
@@ -25,18 +25,18 @@ async function index(message) {
             msg += e.text
         }
     })
-    
+
     if (!msg.includes("站街")) return;
 
     msg = s2t.t2s(msg);
-    
+
     if (msg == "关闭站街") {
         $.setModuleStatus(message, moduleName, 0);
     }
     if (msg == "开启站街") {
         $.setModuleStatus(message, moduleName, 1);
     }
-    
+
     const status = await $.getModuleStatus(message, moduleName);
     if (!status) return;
 
@@ -63,6 +63,12 @@ async function index(message) {
     }
     if (msg == "站街赔钱榜") {
         rank(message, timestamp, filePath, 'lose_score');
+    }
+    if (msg == "站街乖宝宝榜") {
+        rank(message, timestamp, filePath, 'good_boi');
+    }
+    if (msg == "站街坏宝宝榜") {
+        rank(message, timestamp, filePath, 'bad_boi');
     }
 
 }

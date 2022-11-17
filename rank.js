@@ -98,9 +98,9 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 }
             ])
-            
+
             break;
-            
+
         // 站街富豪榜
         case 'score':
 
@@ -124,12 +124,12 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 }
             ])
-            
+
             break;
-            
+
         // 站街赚钱榜
         case 'make_score':
-            
+
             result = await StandOnTheStreet.aggregate([
                 {
                     $addFields: {
@@ -211,6 +211,56 @@ module.exports = async function (message, timestamp, filePath, type) {
                 {
                     $addFields: {
                         number: "$stats.per"
+                    }
+                }
+            ])
+
+            break;
+        // 乖乖寶寶不嫖娼
+        case 'good_boi':
+
+            result = await StandOnTheStreet.aggregate([
+                {
+                    $match: {
+                        group: group.id
+                    }
+                },
+                {
+                    $sort: {
+                        "score": -1 // desc?
+                    }
+                },
+                {
+                    $limit: limit
+                },
+                {
+                    $addFields: {
+                        number: "$stats.out"
+                    }
+                }
+            ])
+
+            break;
+        // 坏寶寶就要嫖娼
+        case 'bad_boi':
+
+            result = await StandOnTheStreet.aggregate([
+                {
+                    $match: {
+                        group: group.id
+                    }
+                },
+                {
+                    $sort: {
+                        "score": 1 // asc? 
+                    }
+                },
+                {
+                    $limit: limit
+                },
+                {
+                    $addFields: {
+                        number: "$stats.out"
                     }
                 }
             ])
