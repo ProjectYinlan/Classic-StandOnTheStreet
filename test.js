@@ -20,7 +20,7 @@ const message = {
       joinTimestamp: 1657947329,
       lastSpeakTimestamp: 1665906810,
       muteTimeRemaining: 0,
-      group: { id: 259565487, name: '大寄天下', permission: 'MEMBER' }
+      group: { id: 662595092, name: '大寄天下', permission: 'MEMBER' }
     },
     reply(messageChain) {
         console.log('replyFunction', messageChain);

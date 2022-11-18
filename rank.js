@@ -161,7 +161,7 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 },
                 {
-                    $limit: 5
+                    $limit: limit
                 },
                 {
                     $addFields: {
@@ -216,6 +216,7 @@ module.exports = async function (message, timestamp, filePath, type) {
             ])
 
             break;
+
         // 乖乖寶寶不嫖娼
         case 'good_boi':
 
@@ -226,8 +227,15 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 },
                 {
+                    $addFields: {
+                        "stats.outCount": {
+                            $size: "$out"
+                        }
+                    }
+                },
+                {
                     $sort: {
-                        "score": -1 // desc?
+                        "stats.outCount": 1
                     }
                 },
                 {
@@ -235,7 +243,7 @@ module.exports = async function (message, timestamp, filePath, type) {
                 },
                 {
                     $addFields: {
-                        number: "$stats.out"
+                        number: "$stats.outCount"
                     }
                 }
             ])
@@ -251,8 +259,15 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 },
                 {
+                    $addFields: {
+                        "stats.outCount": {
+                            $size: "$out"
+                        }
+                    }
+                },
+                {
                     $sort: {
-                        "score": 1 // asc? 
+                        "stats.outCount": -1
                     }
                 },
                 {
@@ -260,7 +275,7 @@ module.exports = async function (message, timestamp, filePath, type) {
                 },
                 {
                     $addFields: {
-                        number: "$stats.out"
+                        number: "$stats.outCount"
                     }
                 }
             ])

@@ -46,6 +46,20 @@
             "title": [
                 "赔钱货！"
             ]
+        },
+        "good_boi": {
+            "name": "站街乖宝宝榜",
+            "unitIcon": "rank_count.png",
+            "title": [
+                "贞洁永存"
+            ]
+        },
+        "bad_boi": {
+            "name": "站街坏宝宝榜",
+            "unitIcon": "rank_count.png",
+            "title": [
+                "可能是*牛"
+            ]
         }
     }
 }
