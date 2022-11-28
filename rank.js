@@ -1,5 +1,5 @@
 // 排行榜
-env
+
 const env = process.env.ENV || 'prod';
 
 const { bot } = env == 'dev' ? require('./emulators/a') : require('../../a');
