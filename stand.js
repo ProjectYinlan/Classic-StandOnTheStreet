@@ -283,7 +283,7 @@ module.exports = async function (message, timestamp, filePath) {
 
             if (typeof (result.notify) == 'undefined') {
                 notifyStatus = -1;
-                await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, { $set: { notify: false } });
+                await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, { $set: { notify: true } });
             } else if (result.notify) {
                 notifyStatus = 1;
             }
@@ -364,7 +364,7 @@ module.exports = async function (message, timestamp, filePath) {
             msg += `您光临了 ${message.sender.memberName} (${message.sender.id})\n`;
             msg += `共计消费 ${detail}，余额 ${score}`;
 
-            if (status == -1) msg += "\n这是您在该群第一次收到该通知，如有需要，回复该消息“T”或“TD”退订";
+            if (status == -1) msg += "\n这是您在该群第一次收到该通知，提醒功能默认开启，可在群内发送“关闭站街提醒”或回复该消息“T”或“TD”退订";
 
             r = await bot.sendTempMessage(msg, qq, message.sender.group.id);
 

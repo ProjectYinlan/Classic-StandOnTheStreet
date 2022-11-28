@@ -74,7 +74,7 @@ async function getStatus(qq, group) {
 
     if (typeof(r.notify) == 'undefined') {
         result = -1;
-        await StandOnTheStreet.findOneAndUpdate({ qq, group }, { $set: { notify: false } });
+        await StandOnTheStreet.findOneAndUpdate({ qq, group }, { $set: { notify: true } });
     } else if (r.notify) {
         result = 1;
     }
