@@ -283,7 +283,7 @@ module.exports = async function (message, timestamp, filePath) {
 
             if (typeof (result.notify) == 'undefined') {
                 notifyStatus = -1;
-                await StandOnTheStreet.findOneAndUpdate({ qq, group }, { $set: { notify: false } });
+                await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, { $set: { notify: false } });
             } else if (result.notify) {
                 notifyStatus = 1;
             }
