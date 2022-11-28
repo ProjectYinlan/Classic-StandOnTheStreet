@@ -355,16 +355,16 @@ module.exports = async function (message, timestamp, filePath) {
     if (outList.length != 0) {
         for (const [index, item] of Object.entries(notifyList)) {
 
-            const { qq, detail, score, notifyStatus } = item;
+            const { qq, detail, score, status } = item;
 
-            if (notifyStatus == 0) continue;
+            if (status == 0) continue;
 
             let msg = '';
             msg += `[站街提醒] 群 ${message.sender.group.name} (${message.sender.group.id})\n`;
             msg += `您光临了 ${message.sender.memberName} (${message.sender.id})\n`;
             msg += `共计消费 ${detail}，余额 ${score}`;
 
-            if (notifyStatus == -1) msg += "\n这是您在该群第一次收到该通知，如有需要，回复该消息“T”或“TD”退订";
+            if (status == -1) msg += "\n这是您在该群第一次收到该通知，如有需要，回复该消息“T”或“TD”退订";
 
             r = await bot.sendTempMessage(msg, qq, message.sender.group.id);
 
