@@ -1,7 +1,9 @@
 // 站街主方法
 
-const { bot } = process.env.ENV == 'dev' ? require('./emulators/a') : require('../../a');
-const { StandOnTheStreet } = process.env.ENV == 'dev' ? require('./connect') : require('../../connect');
+const env = process.env.ENV || 'prod';
+
+const { bot } = env == 'dev' ? require('./emulators/a') : require('../../a');
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../connect');
 
 const sharp = require('sharp');
 const fs = require('fs');
@@ -57,6 +59,8 @@ module.exports = async function (message, timestamp, filePath) {
 
     let messageChain = [];
 
+    let notificationList = [];
+
     // 判断是否有记录以及时限
     result = await StandOnTheStreet.findOne({ qq: message.sender.id, group: message.sender.group.id });
     if (!result) {
@@ -107,7 +111,7 @@ module.exports = async function (message, timestamp, filePath) {
 
     // 获取群员列表
     const memberList = await bot.getGroupMemberList(message.sender.group.id).then(m => m.map(e => e.id));
-    console.log(memberList.length);
+    if (env == 'dev') console.log(memberList.length);
 
     // 总共最多抽多少人
     let totalCountMax = randomRange(0, 30);
@@ -117,14 +121,14 @@ module.exports = async function (message, timestamp, filePath) {
 
     // 抽多少人（真随机
     let friendsCount = randomRange(0, friendsCountMax);
-    console.log('friendsCount 1', friendsCount);
+    if (env == 'dev') console.log('friendsCount 1', friendsCount);
 
     // 最多抽多少路人，总和最多30人
     const othersCountMax = friendsCount > totalCountMax ? 0 : totalCountMax - friendsCount;
 
     // 抽多少路人
     const othersCount = randomRange(0, othersCountMax);
-    console.log('othersCount', othersCount);
+    if (env == 'dev') console.log('othersCount', othersCount);
     const others = {
         score: randomRange(0, 5) * othersCount * 50,
         count: othersCount
@@ -175,7 +179,7 @@ module.exports = async function (message, timestamp, filePath) {
     // 还要判断能抽的是否大于了本身人数
     friendsCount = candidateList.length < friendsCount ? candidateList.length : friendsCount;
 
-    console.log('friendsCount 2', friendsCount);
+    if (env == 'dev') console.log('friendsCount 2', friendsCount);
 
     if (friendsCount) {
 
@@ -250,6 +254,8 @@ module.exports = async function (message, timestamp, filePath) {
             nextTime: ts + 12 * 60 * 60 * 1000
         }
     }, { upsert: true, new: true })
+
+    // 这里是操作光临的人的数据库
     if (outList.length != 0) {
 
         for (let [index, item] of Object.entries(outList)) {
@@ -266,7 +272,18 @@ module.exports = async function (message, timestamp, filePath) {
                         ts
                     }
                 }
-            }, { upsert: true })
+            }, {
+                upsert: true,
+                new: true
+            })
+
+            // 这里是用于通知对方的
+            notificationList.push({
+                qq,
+                out: data.qq,
+                detail: data.score,
+                score: result.score
+            });
         }
 
     }
@@ -292,9 +309,9 @@ module.exports = async function (message, timestamp, filePath) {
 
     // 判断人均
     const per = Math.ceil( cardDataObj.data.total.score / cardDataObj.data.total.count );
-    content = per == 0 ? randomArrayElem(contents.succeed.none) : randomArrayElem(contents.succeed.normal);
+    content = ( per == 0 || isNaN(per) ) ? randomArrayElem(contents.succeed.none) : randomArrayElem(contents.succeed.normal);
 
-    console.log('cardDataObj', cardDataObj);
+    if (env == 'dev') console.log('cardDataObj', cardDataObj);
 
     messageChain.push({
         type: 'At',
@@ -319,7 +336,28 @@ module.exports = async function (message, timestamp, filePath) {
         path: filePath
     })
 
-    message.reply(messageChain);
+    let r = await message.reply(messageChain);
+
+    console.log("信息发送结果", r);
+
+    // 发送提醒消息
+    if (outList.length != 0) {
+        for(const [index, item] of Object.entries(notificationList)) {
+            
+            const { qq, detail, score } = item;
+
+            let msg = '';
+            msg += `[站街] 您在群 ${message.sender.group.name} (${message.sender.group.id}) 光临了 ${message.sender.memberName} (${message.sender.id})\n`;
+            msg += `共计消费 ${detail}，余额 ${score}`;
+
+            r = await bot.sendTempMessage(msg, qq, message.sender.group.id);
+
+            console.log("通知信息发送结果", r);
+        }
+    }
+
+    // 删除文件捏
+    if (env != 'dev') fs.unlinkSync(filePath);
 
 }
 

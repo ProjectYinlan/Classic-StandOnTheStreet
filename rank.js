@@ -1,7 +1,9 @@
 // 排行榜
+env
+const env = process.env.ENV || 'prod';
 
-const { bot } = process.env.ENV == 'dev' ? require('./emulators/a') : require('../../a');
-const { StandOnTheStreet } = process.env.ENV == 'dev' ? require('./connect') : require('../../connect');
+const { bot } = env == 'dev' ? require('./emulators/a') : require('../../a');
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../connect');
 
 const sharp = require('sharp');
 const fs = require('fs');
@@ -308,10 +310,14 @@ module.exports = async function (message, timestamp, filePath, type) {
 
     fs.writeFileSync(filePath, card);
 
-    message.reply([{
+    let r = await message.reply([{
         type: 'Image',
         path: filePath
     }])
+
+    console.log("信息发送结果", r);
+
+    if (env != 'dev') fs.unlinkSync(filePath);
 
 }
 
