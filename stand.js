@@ -59,7 +59,7 @@ module.exports = async function (message, timestamp, filePath) {
 
     let messageChain = [];
 
-    let notificationList = [];
+    let notifyList = [];
 
     // 判断是否有记录以及时限
     result = await StandOnTheStreet.findOne({ qq: message.sender.id, group: message.sender.group.id });
@@ -164,7 +164,7 @@ module.exports = async function (message, timestamp, filePath) {
 
             out.forEach(e1 => {
 
-                if (e1.ts && e1.ts >= dayTs) dayOut ++;
+                if (e1.ts && e1.ts >= dayTs) dayOut++;
 
             })
 
@@ -173,7 +173,7 @@ module.exports = async function (message, timestamp, filePath) {
         })
 
         return result;
-        
+
     });
 
     // 还要判断能抽的是否大于了本身人数
@@ -278,11 +278,22 @@ module.exports = async function (message, timestamp, filePath) {
             })
 
             // 这里是用于通知对方的
-            notificationList.push({
+
+            let notifyStatus = 0;
+
+            if (typeof (result.notify) == 'undefined') {
+                notifyStatus = -1;
+                await StandOnTheStreet.findOneAndUpdate({ qq, group }, { $set: { notify: false } });
+            } else if (result.notify) {
+                notifyStatus = 1;
+            }
+
+            notifyList.push({
                 qq,
                 out: data.qq,
                 detail: data.score,
-                score: result.score
+                score: result.score,
+                status: notifyStatus
             });
         }
 
@@ -308,8 +319,8 @@ module.exports = async function (message, timestamp, filePath) {
     }
 
     // 判断人均
-    const per = Math.ceil( cardDataObj.data.total.score / cardDataObj.data.total.count );
-    content = ( per == 0 || isNaN(per) ) ? randomArrayElem(contents.succeed.none) : randomArrayElem(contents.succeed.normal);
+    const per = Math.ceil(cardDataObj.data.total.score / cardDataObj.data.total.count);
+    content = (per == 0 || isNaN(per)) ? randomArrayElem(contents.succeed.none) : randomArrayElem(contents.succeed.normal);
 
     if (env == 'dev') console.log('cardDataObj', cardDataObj);
 
@@ -326,7 +337,7 @@ module.exports = async function (message, timestamp, filePath) {
     })
 
     // 生成整图
-  
+
     const imgBuffer = await genCard(cardDataObj);
 
     fs.writeFileSync(filePath, imgBuffer);
@@ -342,13 +353,18 @@ module.exports = async function (message, timestamp, filePath) {
 
     // 发送提醒消息
     if (outList.length != 0) {
-        for(const [index, item] of Object.entries(notificationList)) {
-            
-            const { qq, detail, score } = item;
+        for (const [index, item] of Object.entries(notifyList)) {
+
+            const { qq, detail, score, notifyStatus } = item;
+
+            if (notifyStatus == 0) continue;
 
             let msg = '';
-            msg += `[站街] 您在群 ${message.sender.group.name} (${message.sender.group.id}) 光临了 ${message.sender.memberName} (${message.sender.id})\n`;
+            msg += `[站街提醒] 群 ${message.sender.group.name} (${message.sender.group.id})\n`;
+            msg += `您光临了 ${message.sender.memberName} (${message.sender.id})\n`;
             msg += `共计消费 ${detail}，余额 ${score}`;
+
+            if (notifyStatus == -1) msg += "\n这是您在该群第一次收到该通知，如有需要，回复该消息“T”或“TD”退订";
 
             r = await bot.sendTempMessage(msg, qq, message.sender.group.id);
 
@@ -369,7 +385,7 @@ module.exports = async function (message, timestamp, filePath) {
  * @param {Number} count 
  * @return {Buffer}
  */
- async function genDetailItem (title, score, count) {
+async function genDetailItem(title, score, count) {
 
     const scoreIconLeft = 58;
     const countIconLeft = 193;
@@ -435,8 +451,8 @@ module.exports = async function (message, timestamp, filePath) {
  * 生成头像组卡片
  * @param {Array} friendsList 
  */
-async function genAvatarGroup (friendsList) {
-    
+async function genAvatarGroup(friendsList) {
+
     avatarItemLineCount = Math.ceil(friendsList.length / avatarInlineCount);
     avatarGroupHeight = avatarItemLineCount * avatarItemHeight + (avatarItemLineCount - 1) * avatarMargin;
 
@@ -450,8 +466,8 @@ async function genAvatarGroup (friendsList) {
 
         avatarItemList.push({
             input: avatarItem,
-            top: Math.floor(index / avatarInlineCount) * ( avatarItemHeight + avatarMargin ),
-            left: Math.ceil( (index % avatarInlineCount) * (avatarItemMargin + avatarItemWidth) )
+            top: Math.floor(index / avatarInlineCount) * (avatarItemHeight + avatarMargin),
+            left: Math.ceil((index % avatarInlineCount) * (avatarItemMargin + avatarItemWidth))
         })
 
     }
@@ -483,7 +499,7 @@ async function genAvatarGroup (friendsList) {
  * @param {Number} score 
  * @return {Buffer}
  */
-async function genAvatarItem (qq, score) {
+async function genAvatarItem(qq, score) {
 
     const avatar = await genAvatar(qq, avatarSize);
 
@@ -513,7 +529,7 @@ async function genAvatarItem (qq, score) {
             {
                 input: Buffer.from(scoreText.svg),
                 top: avatarSize,
-                left: Math.ceil( ( avatarItemWidth - scoreText.width ) / 2 )
+                left: Math.ceil((avatarItemWidth - scoreText.width) / 2)
             }
         ])
         .png()
@@ -528,7 +544,7 @@ async function genAvatarItem (qq, score) {
  * @param {Object} dataObj 
  * @return {Buffer}
  */
-async function genInnerCard (dataObj) {
+async function genInnerCard(dataObj) {
 
     let compositeList = [];
 
@@ -536,10 +552,10 @@ async function genInnerCard (dataObj) {
     let currentTop = innerCardPadding;
 
     const { total, others, friends } = dataObj;
-    
+
     // 生成分割线
     const hrItem = await genHr(innerCardChildrenWidth, "#bdbdbd", 2);
-    
+
     // 数据
 
     // 总计
@@ -550,8 +566,8 @@ async function genInnerCard (dataObj) {
         left: innerCardPadding
     })
     currentTop += contentLineHeight + innerCardChildrenMargin;
-    
-    
+
+
     // 路人
     if (others.count != 0) {
 
@@ -570,9 +586,9 @@ async function genInnerCard (dataObj) {
             left: innerCardPadding
         })
         currentTop += contentLineHeight + innerCardChildrenMargin;
-        
+
     }
-    
+
     // 群友
     if (friends.list) {
 
@@ -583,9 +599,9 @@ async function genInnerCard (dataObj) {
             left: innerCardPadding
         })
         currentTop += innerCardChildrenMargin;
-        
+
         if (friends.list) {
-            
+
             const friendsItem = await genDetailItem("群友", friends.score, friends.list.length);
             compositeList.push({
                 input: friendsItem,
@@ -593,7 +609,7 @@ async function genInnerCard (dataObj) {
                 left: innerCardPadding
             })
             currentTop += contentLineHeight + innerCardChildrenMargin;
-            
+
             // 头像组
             const avatarGroupItem = await genAvatarGroup(friends.list);
             compositeList.push({
@@ -618,7 +634,7 @@ async function genInnerCard (dataObj) {
         left: 0
     })
 
-    const innerCard = await sharp ({
+    const innerCard = await sharp({
         create: {
             width: innerCardWidth,
             height: innerCardHeight,
@@ -644,7 +660,7 @@ async function genInnerCard (dataObj) {
  * @param {Number} score 
  * @param {Number} count 
  */
-async function genDataItem (score, count) {
+async function genDataItem(score, count) {
 
     const scoreIcon = await sharp(path.resolve(__dirname, 'assets/stand_wallet.png')).toBuffer();
     const countIcon = await sharp(path.resolve(__dirname, 'assets/stand_person_total.png')).toBuffer();
@@ -653,14 +669,14 @@ async function genDataItem (score, count) {
         fontSize: contentFontSize
     });
 
-    const scoreIconLeft = Math.ceil( ( innerCardWidth / 2 - ( iconSize + 2 + scoreText.width ) ) / 2 );
+    const scoreIconLeft = Math.ceil((innerCardWidth / 2 - (iconSize + 2 + scoreText.width)) / 2);
     const scoreTextLeft = scoreIconLeft + iconSize + 2;
-    
+
     const countText = text2svg.toSVG(`${count} 人次`, {
         fontSize: contentFontSize
     });
-    
-    const countIconLeft = Math.ceil( innerCardWidth / 2 + ( innerCardWidth / 2 - ( iconSize + 2 + countText.width ) ) / 2 );
+
+    const countIconLeft = Math.ceil(innerCardWidth / 2 + (innerCardWidth / 2 - (iconSize + 2 + countText.width)) / 2);
     const countTextLeft = countIconLeft + iconSize + 2;
 
     const dataItem = await sharp({
@@ -709,7 +725,7 @@ async function genDataItem (score, count) {
  * 生成整张卡片
  * @param {Object} dataObj
  */
-async function genCard (dataObj) {
+async function genCard(dataObj) {
 
     let compositeList = [];
     let currentTop = cardPadding;
@@ -743,7 +759,7 @@ async function genCard (dataObj) {
 
     const nickTextHeight = (await sharp(nickText).metadata()).height;
 
-    const nickTop = Math.ceil( cardPadding + ( avatarSize - nickTextHeight ) / 2 )
+    const nickTop = Math.ceil(cardPadding + (avatarSize - nickTextHeight) / 2)
     const nickLeft = cardPadding + avatarSize + 12;
 
     compositeList.push({
@@ -763,7 +779,7 @@ async function genCard (dataObj) {
         left: cardPadding
     })
     currentTop += contentLineHeight + cardChildrenMargin;
-    
+
     // 生成 inner 卡片
     const innerCard = await genInnerCard(data);
     compositeList.push({
@@ -789,32 +805,32 @@ async function genCard (dataObj) {
     compositeList.push({
         input: Buffer.from(footerText.svg),
         top: currentTop,
-        left: Math.ceil( ( cardWidth - footerText.width ) / 2 )
+        left: Math.ceil((cardWidth - footerText.width) / 2)
     })
     currentTop += secondaryLineHeight + 2;
-    
+
     const tsText = text2svg.toSVG(formatTs(timestamp), {
         fontSize: secondaryFontSize
     })
     compositeList.push({
         input: Buffer.from(tsText.svg),
         top: currentTop,
-        left: Math.ceil( ( cardWidth - tsText.width ) / 2 )
+        left: Math.ceil((cardWidth - tsText.width) / 2)
     })
     currentTop += secondaryLineHeight + 2;
-    
+
     const versionText = text2svg.toSVG(version, {
         fontSize: secondaryFontSize
     })
     compositeList.push({
         input: Buffer.from(versionText.svg),
         top: currentTop,
-        left: Math.ceil( ( cardWidth - versionText.width ) / 2 )
+        left: Math.ceil((cardWidth - versionText.width) / 2)
     })
     currentTop += secondaryLineHeight + cardChildrenMargin;
-    
+
     const cardHeight = currentTop;
-    
+
     const card = await sharp({
         create: {
             width: cardWidth,

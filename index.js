@@ -1,7 +1,8 @@
 // 站街（洇岚版
 const moduleName = "StandOnTheStreet";
+const env = process.env.ENV || 'prod';
 
-const $ = process.env.ENV == 'dev' ? require('./emulators/base') : require('../base');
+const $ = env == 'dev' ? require('./emulators/base') : require('../base');
 
 const path = require('path');
 const s2t = require('chinese-s2t');
@@ -9,11 +10,61 @@ const s2t = require('chinese-s2t');
 const stand = require('./stand');
 const info = require('./info');
 const rank = require('./rank');
+const notify = require('./notify');
 
 /**
  * 入口
  */
 async function index(message) {
+
+    let r;
+
+    // 处理私聊消息
+    if (message.type == 'FriendMessage' || message.type == 'TempMessage') {
+
+        let msg = '';
+        let origin;
+        messageChain.forEach(e => {
+            if (e.type == 'Plain') {
+                msg += e.text;
+            }
+            if (e.type == 'Quote') {
+                origin = e.origin;
+            }
+        })
+
+        // 退订提醒
+        if ( (msg == 'T' || msg == 'TD') && origin ) {
+            
+            let originMsg = '';
+            messageChain.forEach(e => {
+                if (e.type == 'Plain') {
+                    originMsg += e.text;
+                }
+            })
+
+            let ary = /^\[站街提醒\].*\((\d+)\)/.exec(originMsg);
+
+            if (!ary) return;
+
+            let group = parseInt(ary[1]);
+
+            r = await notify.setStatus(message.sender.id, group, false);
+
+            let reply = r.msg;
+
+            reply.shift();
+
+            await message.reply(reply);
+
+            return;
+
+        }
+
+    }
+
+
+    // 处理群消息
 
     if (message.type != 'GroupMessage') return;
 
@@ -46,6 +97,16 @@ async function index(message) {
 
     if (msg == "站街") {
         stand(message, timestamp, filePath);
+    }
+
+    if (msg == "开启站街提醒") {
+        r = await notify.setStatus(message.sender.id, message.sender.group.id, true);
+        message.reply(r.msg);
+    }
+
+    if (msg == "关闭站街提醒") {
+        r = await notify.setStatus(message.sender.id, message.sender.group.id, false);
+        message.reply(r.msg);
     }
 
     if (msg == "我的站街工资") {
