@@ -19,6 +19,8 @@ async function index(message) {
 
     let r;
 
+    const { messageChain } = message;
+
     // 处理私聊消息
     if (message.type == 'FriendMessage' || message.type == 'TempMessage') {
 
@@ -67,8 +69,6 @@ async function index(message) {
     // 处理群消息
 
     if (message.type != 'GroupMessage') return;
-
-    const { messageChain } = message;
 
     let msg = '';
     messageChain.forEach(e => {
