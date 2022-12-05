@@ -39,7 +39,7 @@ async function index(message) {
         if ( (msg == 'T' || msg == 'TD') && origin ) {
             
             let originMsg = '';
-            messageChain.forEach(e => {
+            origin.forEach(e => {
                 if (e.type == 'Plain') {
                     originMsg += e.text;
                 }
