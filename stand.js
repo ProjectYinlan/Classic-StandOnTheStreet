@@ -52,10 +52,14 @@ let innerCardHeight;
  * @param {Message} message 
  * @param {Date} timestamp 
  * @param {String} filePath
+ * @param {String} type random | call
  */
-module.exports = async function (message, timestamp, filePath) {
+module.exports = async function (message, timestamp, filePath, type) {
 
     const ts = timestamp.getTime();
+
+    // 获取今日零时的ts
+    const dayTs = getDayDate(timestamp).getTime();
 
     let messageChain = [];
 
@@ -88,7 +92,7 @@ module.exports = async function (message, timestamp, filePath) {
             }
         ]);
 
-    } else if (result.nextTime > ts) {
+    } else if (result.nextTime > ts && env != 'dev') {
 
         content = randomArrayElem(contents.many) + '\n';
 
@@ -109,142 +113,223 @@ module.exports = async function (message, timestamp, filePath) {
 
     }
 
-    // 获取群员列表
-    const memberList = await bot.getGroupMemberList(message.sender.group.id).then(m => m.map(e => e.id));
-    if (env == 'dev') console.log(memberList.length);
-
-    // 总共最多抽多少人
-    let totalCountMax = randomRange(0, 30);
-
-    // 最多抽20人，小于20最多群员列表
-    const friendsCountMax = memberList.length >= 20 ? 19 : memberList.length - 1;
-
-    // 抽多少人（真随机
-    let friendsCount = randomRange(0, friendsCountMax);
-    if (env == 'dev') console.log('friendsCount 1', friendsCount);
-
-    // 最多抽多少路人，总和最多30人
-    const othersCountMax = friendsCount > totalCountMax ? 0 : totalCountMax - friendsCount;
-
-    // 抽多少路人
-    const othersCount = randomRange(0, othersCountMax);
-    if (env == 'dev') console.log('othersCount', othersCount);
-    const others = {
-        score: randomRange(0, 5) * othersCount * 50,
-        count: othersCount
-    };
-
-    // 接下来抽幸运群友
-    let friends = [];
-    let friendList = [];
+    let intoDetail = {};
     let outList = [];
-    let friendsScore = 0;
 
-    // 首先要确定我们只能抽有钱的，而且不是自己
-    // 而且是今天造访他人小于2次的
-    const candidateList = await StandOnTheStreet.find({
-        qq: { $ne: message.sender.id },
-        group: message.sender.group.id,
-        score: { $gt: 0 }
-    }).then(r => {
+    // 如果是随机
+    switch (type) {
 
-        let result = [];
+        case 'random':
 
-        // 获取今日零时的ts
-        const dayTs = getDayDate(timestamp).getTime();
+            // 获取群员列表
+            const memberList = await bot.getGroupMemberList(message.sender.group.id).then(m => m.map(e => e.id));
+            if (env == 'dev') console.log(memberList.length);
 
-        // 遍历结果
-        r.forEach(e => {
+            // 总共最多抽多少人
+            let totalCountMax = randomRange(0, 30);
 
-            // 获取造访记录
-            const { out } = e;
+            // 最多抽20人，小于20最多群员列表
+            const friendsCountMax = memberList.length >= 20 ? 19 : memberList.length - 1;
 
-            // 日造访计数
-            let dayOut = 0;
+            // 抽多少人（真随机
+            let friendsCount = randomRange(0, friendsCountMax);
+            if (env == 'dev') console.log('friendsCount 1', friendsCount);
 
-            out.forEach(e1 => {
+            // 最多抽多少路人，总和最多30人
+            const othersCountMax = friendsCount > totalCountMax ? 0 : totalCountMax - friendsCount;
 
-                if (e1.ts && e1.ts >= dayTs) dayOut++;
+            // 抽多少路人
+            const othersCount = randomRange(0, othersCountMax);
+            if (env == 'dev') console.log('othersCount', othersCount);
+            const others = {
+                score: randomRange(0, 5) * othersCount * 50,
+                count: othersCount
+            };
 
+            // 接下来抽幸运群友
+            let friends = [];
+            let friendList = [];
+            let friendsScore = 0;
+
+            // 首先要确定我们只能抽有钱的，而且不是自己
+            // 而且是今天造访他人小于2次的
+            const candidateList = await StandOnTheStreet.find({
+                qq: { $ne: message.sender.id },
+                group: message.sender.group.id,
+                score: { $gt: 0 }
+            }).then(r => {
+
+                let result = [];
+
+                // 遍历结果
+                r.forEach(e => {
+
+                    // 获取造访记录
+                    const { out } = e;
+
+                    // 日造访计数
+                    let dayOut = 0;
+
+                    out.forEach(e1 => {
+
+                        if (e1.ts && e1.ts >= dayTs) dayOut++;
+
+                    })
+
+                    if (dayOut < 2) result.push(e.qq);
+
+                })
+
+                return result;
+
+            });
+
+            // 还要判断能抽的是否大于了本身人数
+            friendsCount = candidateList.length < friendsCount ? candidateList.length : friendsCount;
+
+            if (env == 'dev') console.log('friendsCount 2', friendsCount);
+
+            if (friendsCount) {
+
+                let j = 0;
+
+                function pickFriend() {
+
+                    if (j >= 3) {
+                        j = 0;
+                        return;
+                    }
+
+                    const selected = candidateList[randomRange(0, candidateList.length - 1)];
+                    j++;
+                    if (friendList.indexOf(selected) == -1) {
+                        const score = randomRange(0, 6) * 50;
+                        return {
+                            // into 是针对站街人的 into 生成的
+                            into: {
+                                qq: selected,
+                                score
+                            },
+                            // out 是针对逛街人的 out 生成的
+                            out: {
+                                qq: message.sender.id,
+                                score,
+                                ts
+                            }
+                        };
+                    } else {
+                        pickFriend();
+                    }
+                }
+                for (let i = 0; i < friendsCount; i++) {
+                    const selected = pickFriend();
+                    if (!selected) break;
+                    // 加入 friends 用于组装 into
+                    friends.push(selected.into);
+                    friendList.push(selected.into.qq);
+                    friendsScore += selected.into.score;
+                    // 加入 outList 用于组装 out
+                    outList.push({
+                        qq: selected.into.qq,
+                        data: selected.out
+                    })
+                }
+
+            }
+
+            // 组装！
+            intoDetail = {
+                ts,
+                score: friendsScore + others.score,
+                others
+            }
+            if (friendsCount) {
+                intoDetail.friends = friends;
+            }
+
+            break;
+
+        case 'call':
+
+            let at = -1;
+
+            message.messageChain.forEach(chain => {
+                if (chain.type == 'At') at = chain.target;
             })
 
-            if (dayOut < 2) result.push(e.qq);
-
-        })
-
-        return result;
-
-    });
-
-    // 还要判断能抽的是否大于了本身人数
-    friendsCount = candidateList.length < friendsCount ? candidateList.length : friendsCount;
-
-    if (env == 'dev') console.log('friendsCount 2', friendsCount);
-
-    if (friendsCount) {
-
-        let j = 0;
-
-        function pickFriend() {
-
-            if (j >= 3) {
-                j = 0;
+            // 如果没at
+            if (at == -1) {
+                message.quoteReply("您没有选择摇人对象");
                 return;
             }
 
-            const selected = candidateList[randomRange(0, candidateList.length - 1)];
-            j++;
-            if (friendList.indexOf(selected) == -1) {
-                const score = randomRange(0, 6) * 50;
-                return {
-                    // into 是针对站街人的 into 生成的
-                    into: {
-                        qq: selected,
-                        score
-                    },
-                    // out 是针对逛街人的 out 生成的
-                    out: {
-                        qq: message.sender.id,
-                        score,
-                        ts
-                    }
-                };
-            } else {
-                pickFriend();
+            // 先确定此人是否站过街 或 没钱了
+            result = await StandOnTheStreet.findOne({ qq: at, group: message.sender.group.id, score: { $gt: 0 } });
+
+            if (!result) {
+                message.quoteReply("他已经没钱了。");
+                return;
             }
-        }
-        for (let i = 0; i < friendsCount; i++) {
-            const selected = pickFriend();
-            if (!selected) break;
-            // 加入 friends 用于组装 into
-            friends.push(selected.into);
-            friendList.push(selected.into.qq);
-            friendsScore += selected.into.score;
+
+            // 再判断此人今日是否造访过他人两次及以上
+            if (result.out) {
+
+                let dayOut = 0;
+
+                result.out.forEach(e => {
+
+                    if (e.ts && e.ts >= dayTs) dayOut++;
+
+                })
+
+                if (dayOut >= 2) {
+
+                    message.quoteReply(`他今天已经被榨${dayOut}次了，牛牛已经累了`);
+                    return;
+
+                }
+
+            }
+
+            // 配置输出
+            const score = randomRange(0, 6) * 50;
+
             // 加入 outList 用于组装 out
             outList.push({
-                qq: selected.into.qq,
-                data: selected.out
+                qq: at,
+                data: {
+                    qq: message.sender.id,
+                    score,
+                    ts
+                }
             })
-        }
 
+            intoDetail = {
+                ts,
+                score,
+                friends: [{
+                    qq: at,
+                    score
+                }],
+                others: {
+                    count: 0,
+                    score: 0
+                }
+            }
+
+            break;
+
+        default:
+            return;
     }
 
-    // 组装！
-    let intoDetail = {
-        ts,
-        score: friendsScore + others.score,
-        others
-    }
-    if (friendsCount) {
-        intoDetail.friends = friends;
-    }
 
     // 操作数据库
     const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
         $inc: {
             score: intoDetail.score,
-            "count.friends": friendsCount,
-            "count.others": others.count,
+            "count.friends": typeof (intoDetail.friends) == 'object' ? intoDetail.friends.length : 0,
+            "count.others": intoDetail.others.count,
             "stats.into": intoDetail.score
         },
         $addToSet: {

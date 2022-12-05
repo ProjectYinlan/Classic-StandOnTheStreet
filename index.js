@@ -96,7 +96,11 @@ async function index(message) {
     const filePath = path.resolve(__dirname, `temp/${ts}.png`);
 
     if (msg == "站街") {
-        stand(message, timestamp, filePath);
+        stand(message, timestamp, filePath, 'random');
+    }
+
+    if (msg == "站街摇人") {
+        stand(message, timestamp, filePath, 'call');
     }
 
     if (msg == "开启站街提醒") {
