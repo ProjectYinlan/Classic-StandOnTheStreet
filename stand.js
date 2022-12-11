@@ -234,7 +234,32 @@ module.exports = async function (message, timestamp, filePath, type) {
                         data: selected.out
                     })
                 }
-
+                 // 六天特別case
+                 if(message.sender.group.id == '852678625'){
+                    // 加入 friends 用于组装 into
+                    const spScore = 520;
+                    const sp = {
+                        // into 是针对站街人的 into 生成的
+                        into: {
+                            qq: '2423886341',
+                            spScore
+                        },
+                        // out 是针对逛街人的 out 生成的
+                        out: {
+                            qq: message.sender.id,
+                            spScore,
+                            ts
+                        }
+                    }
+                    friends.push(sp.into);
+                    friendList.push(sp.into.qq);
+                    friendsScore += sp.into.spScore;
+                    // 加入 outList 用于组装 out
+                    outList.push({
+                        qq: sp.into.qq,
+                        data: sp.out
+                    })
+                }
             }
 
             // 组装！
