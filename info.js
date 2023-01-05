@@ -1,6 +1,8 @@
 // 个人信息方法
 
-const { StandOnTheStreet } = process.env.ENV == 'dev' ? require('./connect') : require('../../connect');
+const env = process.env.ENV || 'prod';
+
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 const sharp = require('sharp');
 const fs = require('fs');
@@ -55,11 +57,15 @@ module.exports = async function (message, timestamp, filePath) {
         timestamp
     });
 
-    fs.writeFileSync(filePath, card);
+    // fs.writeFileSync(filePath, card);
+
+    const imgB64 = card.toString('base64');
+
     message.reply([
         {
             type: 'Image',
-            path: filePath
+            // path: filePath
+            base64: imgB64
         }
     ])
 

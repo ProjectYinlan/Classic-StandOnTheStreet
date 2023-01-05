@@ -2,7 +2,7 @@
 
 const env = process.env.ENV || 'prod';
 
-const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../connect');
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 /**
  * 设置站街提醒状态

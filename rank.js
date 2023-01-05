@@ -2,8 +2,8 @@
 
 const env = process.env.ENV || 'prod';
 
-const { bot } = env == 'dev' ? require('./emulators/a') : require('../../a');
-const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../connect');
+const { bot } = env == 'dev' ? require('./emulators/a') : require('../../../app');
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 const sharp = require('sharp');
 const fs = require('fs');
@@ -308,16 +308,19 @@ module.exports = async function (message, timestamp, filePath, type) {
         timestamp
     });
 
-    fs.writeFileSync(filePath, card);
+    // fs.writeFileSync(filePath, card);
+
+    const imgB64 = card.toString('base64');
 
     let r = await message.reply([{
         type: 'Image',
-        path: filePath
+        // path: filePath
+        base64: imgB64
     }])
 
     console.log("信息发送结果", r);
 
-    if (env != 'dev') fs.unlinkSync(filePath);
+    // if (env != 'dev') fs.unlinkSync(filePath);
 
 }
 

@@ -2,8 +2,8 @@
 
 const env = process.env.ENV || 'prod';
 
-const { bot } = env == 'dev' ? require('./emulators/a') : require('../../a');
-const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../connect');
+const { bot } = env == 'dev' ? require('./emulators/a') : require('../../../app');
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 const sharp = require('sharp');
 const fs = require('fs');
@@ -425,11 +425,14 @@ module.exports = async function (message, timestamp, filePath, type) {
 
     const imgBuffer = await genCard(cardDataObj);
 
-    fs.writeFileSync(filePath, imgBuffer);
+    // fs.writeFileSync(filePath, imgBuffer);
+
+    const imgB64 = imgBuffer.toString('base64');
 
     messageChain.push({
         type: 'Image',
-        path: filePath
+        // path: filePath
+        base64: imgB64
     })
 
     let r = await message.reply(messageChain);
@@ -458,7 +461,7 @@ module.exports = async function (message, timestamp, filePath, type) {
     }
 
     // 删除文件捏
-    if (env != 'dev') fs.unlinkSync(filePath);
+    // if (env != 'dev') fs.unlinkSync(filePath);
 
 }
 

@@ -2,7 +2,7 @@
 const moduleName = "StandOnTheStreet";
 const env = process.env.ENV || 'prod';
 
-const $ = env == 'dev' ? require('./emulators/base') : require('../base');
+const $ = env == 'dev' ? require('./emulators/base') : require('../../base');
 
 const path = require('path');
 const s2t = require('chinese-s2t');
@@ -64,6 +64,8 @@ async function index(message) {
         }
 
     }
+
+    // console.log(messageChain);
 
 
     // 处理群消息
