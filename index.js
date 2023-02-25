@@ -92,10 +92,10 @@ async function index(message) {
     }
     if (msg == "站街帮助") {
         const helpB64 = fs.readFileSync(path.resolve(__dirname, `assets/help.png`)).toString('base64');
-        message.reply({
+        message.reply([{
             type: 'Image',
             base64: helpB64
-        })
+        }])
     }
 
     const status = await $.getModuleStatus(message, moduleName);
