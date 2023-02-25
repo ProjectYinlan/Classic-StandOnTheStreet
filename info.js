@@ -8,7 +8,8 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 const Text2svg = require('text2svg');
-const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+// const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/SourceHanSerifSC-Heavy.ttf'));
 
 const { genAvatar, formatTs } = require('./common');
 
@@ -100,7 +101,7 @@ async function genSalaryCard(dataObj) {
     const introLeft = avatarLeft + avatarSize + 18;
     const nickTextMaxWidth = cardWidth - introLeft - cardPadding;
     const nickTop = Math.ceil(avatarTop + (avatarSize / 2 - (nickFontSize + 4 + introFontSize) / 2));
-    const introTop = Math.ceil(nickTop + nickFontSize + 4);
+    const introTop = Math.ceil(nickTop + nickFontSize + 6);
     const dataIntroTop = avatarTop + avatarSize + 24;
     const dataScoreIconLeft = Math.ceil((cardWidth - dataIntroIconSize * 3) / 4);
     const dataTotalCountIconLeft = dataScoreIconLeft * 2 + dataIntroIconSize;

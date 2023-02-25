@@ -9,7 +9,8 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 const Text2svg = require('text2svg');
-const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+// const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/SourceHanSerifSC-Heavy.ttf'));
 
 const { genAvatar, genRoundedRect, genHr, formatTs, randomRange, randomArrayElem, getDayDate } = require('./common');
 const contents = require('./content.json').stand;
@@ -24,7 +25,7 @@ let content = '';
 const contentFontSize = 18;
 const secondaryFontSize = 16;
 const iconSize = 24;
-const contentLineHeight = iconSize;
+const contentLineHeight = contentFontSize + 10;
 const secondaryLineHeight = secondaryFontSize + 3;
 const cardWidth = 400;
 const cardPadding = 30;
@@ -429,8 +430,6 @@ module.exports = async function (message, timestamp, filePath, type) {
 
     const imgB64 = imgBuffer.toString('base64');
 
-    if (env == 'dev') fs.writeFileSync('temp.png', imgBuffer);
-
     messageChain.push({
         type: 'Image',
         // path: filePath
@@ -480,6 +479,8 @@ async function genDetailItem(title, score, count) {
     const scoreIconLeft = 58;
     const countIconLeft = 193;
 
+    const iconTop = ( contentLineHeight - 24 ) / 2 + 2;
+
     const titleText = text2svg.toSVG(title, {
         fontSize: contentFontSize
     });
@@ -511,7 +512,7 @@ async function genDetailItem(title, score, count) {
             },
             {
                 input: scoreIcon,
-                top: 0,
+                top: iconTop,
                 left: scoreIconLeft
             },
             {
@@ -521,7 +522,7 @@ async function genDetailItem(title, score, count) {
             },
             {
                 input: countIcon,
-                top: 0,
+                top: iconTop,
                 left: countIconLeft
             },
             {
@@ -755,6 +756,8 @@ async function genDataItem(score, count) {
     const scoreIcon = await sharp(path.resolve(__dirname, 'assets/stand_wallet.png')).toBuffer();
     const countIcon = await sharp(path.resolve(__dirname, 'assets/stand_person_total.png')).toBuffer();
 
+    const iconTop = ( contentLineHeight - 20 ) / 2;
+
     const scoreText = text2svg.toSVG(`${score} 硬币`, {
         fontSize: contentFontSize
     });
@@ -785,7 +788,7 @@ async function genDataItem(score, count) {
         .composite([
             {
                 input: scoreIcon,
-                top: 0,
+                top: iconTop,
                 left: scoreIconLeft
             },
             {
@@ -795,7 +798,7 @@ async function genDataItem(score, count) {
             },
             {
                 input: countIcon,
-                top: 0,
+                top: iconTop,
                 left: countIconLeft
             },
             {

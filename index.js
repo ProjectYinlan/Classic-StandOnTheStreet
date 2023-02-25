@@ -5,6 +5,7 @@ const env = process.env.ENV || 'prod';
 const $ = env == 'dev' ? require('./emulators/base') : require('../../base');
 
 const path = require('path');
+const fs = require('fs');
 const s2t = require('chinese-s2t');
 
 const stand = require('./stand');
@@ -89,6 +90,13 @@ async function index(message) {
     if (msg == "开启站街") {
         $.setModuleStatus(message, moduleName, 1);
     }
+    if (msg == "站街帮助") {
+        const helpB64 = fs.readFileSync(path.resolve(__dirname, `assets/help.png`)).toString('base64');
+        message.reply({
+            type: 'Image',
+            base64: helpB64
+        })
+    }
 
     const status = await $.getModuleStatus(message, moduleName);
     if (!status) return;
@@ -101,7 +109,7 @@ async function index(message) {
         stand(message, timestamp, filePath, 'random');
     }
 
-    if (msg == "站街摇人") {
+    if (msg.includes("站街摇人")) {
         stand(message, timestamp, filePath, 'call');
     }
 
@@ -116,6 +124,10 @@ async function index(message) {
     }
 
     if (msg == "我的站街工资") {
+        message.quoteReply("该方法未来将被废弃，请使用 “站街钱包” 代替")
+        info(message, timestamp, filePath);
+    }
+    if (msg == "站街钱包") {
         info(message, timestamp, filePath);
     }
 

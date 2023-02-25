@@ -9,7 +9,8 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 const Text2svg = require('text2svg');
-const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+// const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/SourceHanSerifSC-Heavy.ttf'));
 
 const { genAvatar, genHr, formatTs } = require('./common');
 
@@ -36,7 +37,7 @@ const itemHeight = memberAvatarSize;
 const unitWidth = 96;
 const unitIconSize = 24;
 const unitNumberFontSize = 18;
-const unitNumberLineHeight = unitNumberFontSize + 4;
+// const unitNumberLineHeight = unitNumberFontSize + 4;
 
 const itemTextMaxWidth = itemWidth - memberAvatarSize - 16 * 2 - unitWidth;
 
@@ -318,7 +319,7 @@ module.exports = async function (message, timestamp, filePath, type) {
         base64: imgB64
     }])
 
-    console.log("信息发送结果", r);
+    console.log("信息发送");
 
     // if (env != 'dev') fs.unlinkSync(filePath);
 
@@ -506,14 +507,23 @@ async function genItem(qq, nick, unitIcon, number, title) {
  */
 async function genItemUnit(unitIcon, number) {
 
+    
+    console.log(1);
+
     const unitNumber = text2svg.toSVG(number.toString(), {
         fontSize: unitNumberFontSize
     })
 
+    const unitNumberLineHeight = (await sharp(Buffer.from(unitNumber.svg)).metadata()).height;
+
+    console.log(unitNumberLineHeight);
+
+    const unitLineHeight = unitIconSize < unitNumberLineHeight ? unitNumberLineHeight : unitIconSize;
+
     const unit = await sharp({
         create: {
             width: unitWidth,
-            height: unitIconSize,
+            height: unitLineHeight,
             channels: 4,
             background: {
                 r: 0,
@@ -531,12 +541,15 @@ async function genItemUnit(unitIcon, number) {
             },
             {
                 input: Buffer.from(unitNumber.svg),
-                top: Math.ceil((unitIconSize - unitNumberLineHeight) / 2),
+                top: Math.ceil((unitIconSize - unitLineHeight) / 2),
                 left: unitIconSize + 6
             }
         ])
         .png()
         .toBuffer()
+
+        
+    console.log(12);
 
     return unit;
 
@@ -563,6 +576,7 @@ async function genText(textAry, maxWidth) {
 
         const textTemp = text2svg.toSVG(text, { fontSize });
 
+        // 判断昵称生成出来的长度，然后要不要 resize
         if (textTemp.width > maxWidth) {
             textItem = await sharp(Buffer.from(textTemp.svg)).resize(maxWidth).png().toBuffer();
             textItemHeight = (await sharp(textItem).metadata()).height;
