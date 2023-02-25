@@ -3,6 +3,4 @@ temp/
 temp.*
 *.temp.*
 
-fonts/
-
 node_modules
