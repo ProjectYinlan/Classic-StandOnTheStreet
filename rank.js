@@ -570,9 +570,11 @@ async function genText(textAry, maxWidth) {
     // 遍历生成每一行
     for (const [index, item] of Object.entries(textAry)) {
 
-        const { text, fontSize } = item;
+        let { text, fontSize } = item;
 
         let textItem, textItemHeight;
+        
+        if (!text) text = '[群成员不存在]';
 
         const textTemp = text2svg.toSVG(text, { fontSize });
 
