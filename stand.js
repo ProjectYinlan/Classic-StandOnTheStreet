@@ -429,6 +429,8 @@ module.exports = async function (message, timestamp, filePath, type) {
 
     const imgB64 = imgBuffer.toString('base64');
 
+    if (env == 'dev') fs.writeFileSync('temp.png', imgBuffer);
+
     messageChain.push({
         type: 'Image',
         // path: filePath
@@ -437,7 +439,7 @@ module.exports = async function (message, timestamp, filePath, type) {
 
     let r = await message.reply(messageChain);
 
-    console.log("信息发送结果", r);
+    console.log("信息发送");
 
     // 发送提醒消息
     if (outList.length != 0) {
@@ -456,7 +458,7 @@ module.exports = async function (message, timestamp, filePath, type) {
 
             r = await bot.sendTempMessage(msg, qq, message.sender.group.id);
 
-            console.log("通知信息发送结果", r);
+            console.log("通知信息发送");
         }
     }
 
