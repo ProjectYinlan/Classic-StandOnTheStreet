@@ -4,7 +4,7 @@ const main = require('./index');
 
 const fs = require('fs');
 
-const text = process.argv.indexOf('-t') == -1 ? "我的站街工资" : process.argv[process.argv.indexOf('-t') + 1];
+const text = process.argv.indexOf('-t') == -1 ? "站街" : process.argv[process.argv.indexOf('-t') + 1];
 
 console.log("输入", text);
 
@@ -16,14 +16,14 @@ const message = {
       { type: 'At', target: 1285419578}
     ],
     sender: {
-      id: 1285419578,
+      id: 3636152214,
       memberName: '玖叁',
       specialTitle: '',
       permission: 'MEMBER',
       joinTimestamp: 1657947329,
       lastSpeakTimestamp: 1665906810,
       muteTimeRemaining: 0,
-      group: { id: 740440536, name: '洇岚窝', permission: 'OWNER' }
+      group: { id: 259565487, name: '洇岚窝', permission: 'OWNER' }
     },
     reply(messageChain) {
         console.log('replyFunction', messageChain);
