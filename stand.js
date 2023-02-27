@@ -250,6 +250,7 @@ module.exports = async function (message, timestamp, filePath, type) {
 
             break;
 
+        // 摇人
         case 'call':
 
             let at = -1;
@@ -260,7 +261,7 @@ module.exports = async function (message, timestamp, filePath, type) {
 
             // 如果没at
             if (at == -1) {
-                message.quoteReply("您没有选择摇人对象");
+                message.quoteReply("您没有选择摇人对象。");
                 return;
             }
 
@@ -293,7 +294,7 @@ module.exports = async function (message, timestamp, filePath, type) {
             }
 
             // 配置输出
-            const score = randomRange(0, 6) * 50;
+            const score = randomRange(0, 12) * 50;
 
             // 加入 outList 用于组装 out
             outList.push({
@@ -594,7 +595,7 @@ async function genAvatarItem(qq, score) {
 
     const avatar = await genAvatar(qq, avatarSize);
 
-    const scoreText = text2svg.toSVG(score.toString(), {
+    const scoreText = text2svg.toSVG(score == 0 ? "白嫖" : score.toString(), {
         fontSize: secondaryFontSize
     });
 
