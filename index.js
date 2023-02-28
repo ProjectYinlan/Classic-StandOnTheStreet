@@ -80,10 +80,10 @@ async function index(message) {
         }
     })
 
-    if (!msg.includes("站街")) return;
+    msg = msg.replace(/ /g, '');
+    if (!msg.includes("站街") && msg != "炒" && msg != "超" && msg != "操") return;
 
     msg = s2t.t2s(msg);
-    msg = msg.replace(/ /g, '');
 
     if (msg == "关闭站街") {
         $.setModuleStatus(message, moduleName, 0);
