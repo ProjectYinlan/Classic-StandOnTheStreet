@@ -14,8 +14,9 @@
             "距上次站街不足12小时，小心β烂掉！",
             "Your β access timed out.",
             "该β目前无法处理此请求",
-            "This β is currently unable to handle this request",
-            "您的β访问超时了！请稍后再试"
+            "This β is currently unable to handle this request.",
+            "您的β访问超时了！请稍后再试。",
+            "心急吃不了热肠。"
         ]
     },
     "rank": {

@@ -254,14 +254,24 @@ module.exports = async function (message, timestamp, filePath, type) {
         case 'call':
 
             let at = -1;
+            let atCount = 0;
 
             message.messageChain.forEach(chain => {
-                if (chain.type == 'At') at = chain.target;
+                if (chain.type == 'At') {
+                    at = chain.target;
+                    atCount ++;
+                };
             })
 
             // 如果没at
             if (at == -1) {
                 message.quoteReply("您没有选择摇人对象。");
+                return;
+            }
+            
+            // 如果at太多
+            if (atCount > 1) {
+                message.quoteReply("一次只能光临一人哦。");
                 return;
             }
 
@@ -595,7 +605,7 @@ async function genAvatarItem(qq, score) {
 
     const avatar = await genAvatar(qq, avatarSize);
 
-    const scoreText = text2svg.toSVG(score == 0 ? "白嫖" : score.toString(), {
+    const scoreText = text2svg.toSVG((score == 0 || score == '0') ? "白嫖" : score.toString(), {
         fontSize: secondaryFontSize
     });
 

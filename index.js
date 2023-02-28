@@ -83,6 +83,7 @@ async function index(message) {
     if (!msg.includes("站街")) return;
 
     msg = s2t.t2s(msg);
+    msg = msg.replace(/ /g, '');
 
     if (msg == "关闭站街") {
         $.setModuleStatus(message, moduleName, 0);
@@ -109,7 +110,7 @@ async function index(message) {
         stand(message, timestamp, filePath, 'random');
     }
 
-    if (msg.includes("站街摇人")) {
+    if (msg == "站街摇人" || msg == "炒" || msg == "超" || msg == "操") {
         stand(message, timestamp, filePath, 'call');
     }
 
