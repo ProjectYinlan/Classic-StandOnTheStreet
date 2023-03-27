@@ -7,6 +7,7 @@ const $ = env == 'dev' ? require('./emulators/base') : require('../../base');
 const path = require('path');
 const fs = require('fs');
 const s2t = require('chinese-s2t');
+const minimist = require('minimist');
 
 const stand = require('./stand');
 const info = require('./info');
@@ -37,8 +38,8 @@ async function index(message) {
         })
 
         // 退订提醒
-        if ( (msg == 'T' || msg == 'TD') && origin ) {
-            
+        if ((msg == 'T' || msg == 'TD') && origin) {
+
             let originMsg = '';
             origin.forEach(e => {
                 if (e.type == 'Plain') {
@@ -80,7 +81,7 @@ async function index(message) {
         }
     })
 
-    msg = msg.replace(/ /g, '');
+    // msg = msg.replace(/ /g, '');
     if (!msg.includes("站街") && msg != "炒" && msg != "超" && msg != "操") return;
 
     msg = s2t.t2s(msg);
@@ -102,15 +103,20 @@ async function index(message) {
     const status = await $.getModuleStatus(message, moduleName);
     if (!status) return;
 
+    const msgAry = msg.split(" ");
+    const msgArgv = minimist(msgAry);
+    const msgCmd = msgArgv._;
+
     const timestamp = new Date();
     const ts = timestamp.getTime();
     const filePath = path.resolve(__dirname, `temp/${ts}.png`);
 
-    if (msg == "站街") {
-        stand(message, timestamp, filePath, 'random');
+    if (msgCmd.includes("站街")) {
+        let force = (msgArgv.force || msgArgv.f) ? true : false;
+        stand(message, timestamp, filePath, 'random', force);
     }
 
-    if (msg == "站街摇人" || msg == "炒" || msg == "超" || msg == "操") {
+    if (msgCmd.includes("站街摇人") || msgCmd.includes("炒") || msgCmd.includes("超") || msgCmd.includes("操")) {
         stand(message, timestamp, filePath, 'call');
     }
 
