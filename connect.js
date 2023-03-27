@@ -24,6 +24,7 @@ const StandOnTheStreetSchema = new Schema({
     group: Number,
     qq: Number,
     notify: Boolean,
+    force: Boolean,
     score: {
         type: Number,
         default: 0

@@ -4,19 +4,17 @@ const main = require('./index');
 
 const fs = require('fs');
 
-const text = process.argv.indexOf('-t') == -1 ? "站街帮助" : process.argv[process.argv.indexOf('-t') + 1];
+const text = process.argv.indexOf('-t') == -1 ? "站街 --force" : process.argv[process.argv.indexOf('-t') + 1];
 
 console.log("输入", text);
 
 const message = {
     type: 'GroupMessage',
     messageChain: [
-      { type: 'Source', id: 169387, time: 1665906810 },
       { type: 'Plain', text },
-      { type: 'At', target: 1285419578}
     ],
     sender: {
-      id: 3636152214,
+      id: 1285419578,
       memberName: '玖叁',
       specialTitle: '',
       permission: 'MEMBER',

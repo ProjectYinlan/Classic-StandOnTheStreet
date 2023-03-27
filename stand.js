@@ -21,6 +21,7 @@ const countIcon = fs.readFileSync(path.resolve(__dirname, 'assets/stand_person.p
 
 const footer = "Designed by null, modified by 93.";
 let content = '';
+let msgContent = '';
 
 const contentFontSize = 18;
 const secondaryFontSize = 16;
@@ -54,8 +55,9 @@ let innerCardHeight;
  * @param {Date} timestamp 
  * @param {String} filePath
  * @param {String} type random | call
+ * @param {Boolean} force
  */
-module.exports = async function (message, timestamp, filePath, type) {
+module.exports = async function (message, timestamp, filePath, type, force) {
 
     const ts = timestamp.getTime();
 
@@ -69,6 +71,8 @@ module.exports = async function (message, timestamp, filePath, type) {
     // 判断是否有记录以及时限
     result = await StandOnTheStreet.findOne({ qq: message.sender.id, group: message.sender.group.id });
     if (!result) {
+
+        // 第一次
 
         await StandOnTheStreet.create({
             group: message.sender.group.id,
@@ -95,27 +99,111 @@ module.exports = async function (message, timestamp, filePath, type) {
 
     } else if (result.nextTime > ts && env != 'dev') {
 
-        content = randomArrayElem(contents.many) + '\n';
+        // 非开发环境 时间不够
 
-        content += `下次时间为：${formatTs(new Date(result.nextTime))}`;
+        // 判断是否使用 force
 
-        message.reply([
-            {
-                type: 'At',
-                target: message.sender.id
-            },
-            {
-                type: 'Plain',
-                text: content
-            }
-        ]);
+        if (!force) {
 
-        return;
+            content = randomArrayElem(contents.many) + '\n';
+
+            content += `下次时间为：${formatTs(new Date(result.nextTime))}`;
+
+            message.reply([
+                {
+                    type: 'At',
+                    target: message.sender.id
+                },
+                {
+                    type: 'Plain',
+                    text: content
+                }
+            ]);
+
+            return;
+
+        } else if (result.force) {
+
+            content = randomArrayElem(contents.too_many) + '\n';
+
+            content += "请在下次时间到达后使用普通站街\n"
+
+            content += `下次时间为：${formatTs(new Date(result.nextTime))}`;
+
+            message.reply([
+                {
+                    type: 'At',
+                    target: message.sender.id
+                },
+                {
+                    type: 'Plain',
+                    text: content
+                }
+            ]);
+
+            return;
+
+        }
 
     }
 
+    // 判断是否真的需要 force
+    if (!result || (result.nextTime < ts && env != 'dev')) force = false;
+
     let intoDetail = {};
     let outList = [];
+    let canForce = false;
+
+    // 富豪手续费
+    if (result.score > 20000) {
+
+        // 获取最近五次数据
+        const recent = result.into.slice(-5).map(e => e.score);
+
+        // 平均值
+        const avg = recent.reduce((acc, curr) => acc + curr) / recent.length;
+
+        // 手续费
+        const commission = Math.round(avg * 0.2);
+
+        // 扣费
+        const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
+            $inc: {
+                score: 0 - commission
+            }
+        }, { new: true })
+
+        msgContent += `\n已扣除富豪手续费 ${commission}，余额为 ${newResult.score}`;
+
+    }
+
+    // force 手续费
+    if (force) {
+
+        // 获取最近五次数据
+        const recent = result.into.slice(-5).map(e => e.score);
+
+        // 平均值
+        const avg = recent.reduce((acc, curr) => acc + curr) / recent.length;
+
+        // 手续费
+        const commission = Math.round(avg * 0.5);
+
+        // 扣费
+        const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
+            $inc: {
+                score: 0 - commission
+            }
+        }, { new: true })
+
+        // 抽一下 杨威 buff
+        canForce = Math.random() < 0.3 ? true : false;
+
+        msgContent += `\n已扣除强制站街手续费 ${commission}，余额为 ${newResult.score}`;
+
+        if (canForce) msgContent += '\n恭喜您，获得杨威Buff，站街CD增加6小时';
+
+    }
 
     // 如果是随机
     switch (type) {
@@ -259,7 +347,7 @@ module.exports = async function (message, timestamp, filePath, type) {
             message.messageChain.forEach(chain => {
                 if (chain.type == 'At') {
                     at = chain.target;
-                    atCount ++;
+                    atCount++;
                 };
             })
 
@@ -268,7 +356,7 @@ module.exports = async function (message, timestamp, filePath, type) {
                 message.quoteReply("您没有选择摇人对象。");
                 return;
             }
-            
+
             // 如果at太多
             if (atCount > 1) {
                 message.quoteReply("一次只能光临一人哦。");
@@ -348,7 +436,8 @@ module.exports = async function (message, timestamp, filePath, type) {
             into: intoDetail
         },
         $set: {
-            nextTime: ts + 12 * 60 * 60 * 1000
+            nextTime: ts + 12 * 60 * 60 * 1000 + canForce ? 6 * 60 * 60 * 1000 : 0,
+            force: canForce
         }
     }, { upsert: true, new: true })
 
@@ -427,7 +516,7 @@ module.exports = async function (message, timestamp, filePath, type) {
     })
 
     let msg = '';
-    msg += content + "\n";
+    msg += content + msgContent + "\n";
     messageChain.push({
         type: 'Plain',
         text: msg
@@ -490,7 +579,7 @@ async function genDetailItem(title, score, count) {
     const scoreIconLeft = 58;
     const countIconLeft = 193;
 
-    const iconTop = ( contentLineHeight - 24 ) / 2 + 2;
+    const iconTop = (contentLineHeight - 24) / 2 + 2;
 
     const titleText = text2svg.toSVG(title, {
         fontSize: contentFontSize
@@ -767,7 +856,7 @@ async function genDataItem(score, count) {
     const scoreIcon = await sharp(path.resolve(__dirname, 'assets/stand_wallet.png')).toBuffer();
     const countIcon = await sharp(path.resolve(__dirname, 'assets/stand_person_total.png')).toBuffer();
 
-    const iconTop = ( contentLineHeight - 20 ) / 2;
+    const iconTop = (contentLineHeight - 20) / 2;
 
     const scoreText = text2svg.toSVG(`${score} 硬币`, {
         fontSize: contentFontSize
