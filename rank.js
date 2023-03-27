@@ -1,13 +1,16 @@
 // 排行榜
 
-const { bot } = process.env.ENV == 'dev' ? require('./emulators/a') : require('../../a');
-const { StandOnTheStreet } = process.env.ENV == 'dev' ? require('./connect') : require('../../connect');
+const env = process.env.ENV || 'prod';
+
+const { bot } = env == 'dev' ? require('./emulators/a') : require('../../../app');
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 const Text2svg = require('text2svg');
-const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+// const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/SourceHanSerifSC-Heavy.ttf'));
 
 const { genAvatar, genHr, formatTs } = require('./common');
 
@@ -34,7 +37,7 @@ const itemHeight = memberAvatarSize;
 const unitWidth = 96;
 const unitIconSize = 24;
 const unitNumberFontSize = 18;
-const unitNumberLineHeight = unitNumberFontSize + 4;
+// const unitNumberLineHeight = unitNumberFontSize + 4;
 
 const itemTextMaxWidth = itemWidth - memberAvatarSize - 16 * 2 - unitWidth;
 
@@ -98,9 +101,9 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 }
             ])
-            
+
             break;
-            
+
         // 站街富豪榜
         case 'score':
 
@@ -124,12 +127,12 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 }
             ])
-            
+
             break;
-            
+
         // 站街赚钱榜
         case 'make_score':
-            
+
             result = await StandOnTheStreet.aggregate([
                 {
                     $addFields: {
@@ -161,7 +164,7 @@ module.exports = async function (message, timestamp, filePath, type) {
                     }
                 },
                 {
-                    $limit: 5
+                    $limit: limit
                 },
                 {
                     $addFields: {
@@ -217,6 +220,71 @@ module.exports = async function (message, timestamp, filePath, type) {
 
             break;
 
+        // 乖乖寶寶不嫖娼
+        case 'good_boi':
+
+            result = await StandOnTheStreet.aggregate([
+                {
+                    $match: {
+                        group: group.id
+                    }
+                },
+                {
+                    $addFields: {
+                        "stats.outCount": {
+                            $size: "$out"
+                        }
+                    }
+                },
+                {
+                    $sort: {
+                        "stats.outCount": 1
+                    }
+                },
+                {
+                    $limit: limit
+                },
+                {
+                    $addFields: {
+                        number: "$stats.outCount"
+                    }
+                }
+            ])
+
+            break;
+        // 坏寶寶就要嫖娼
+        case 'bad_boi':
+
+            result = await StandOnTheStreet.aggregate([
+                {
+                    $match: {
+                        group: group.id
+                    }
+                },
+                {
+                    $addFields: {
+                        "stats.outCount": {
+                            $size: "$out"
+                        }
+                    }
+                },
+                {
+                    $sort: {
+                        "stats.outCount": -1
+                    }
+                },
+                {
+                    $limit: limit
+                },
+                {
+                    $addFields: {
+                        number: "$stats.outCount"
+                    }
+                }
+            ])
+
+            break;
+
         default:
             return;
     }
@@ -241,12 +309,19 @@ module.exports = async function (message, timestamp, filePath, type) {
         timestamp
     });
 
-    fs.writeFileSync(filePath, card);
+    // fs.writeFileSync(filePath, card);
 
-    message.reply([{
+    const imgB64 = card.toString('base64');
+
+    let r = await message.reply([{
         type: 'Image',
-        path: filePath
+        // path: filePath
+        base64: imgB64
     }])
+
+    console.log("信息发送");
+
+    // if (env != 'dev') fs.unlinkSync(filePath);
 
 }
 
@@ -432,14 +507,23 @@ async function genItem(qq, nick, unitIcon, number, title) {
  */
 async function genItemUnit(unitIcon, number) {
 
+    
+    console.log(1);
+
     const unitNumber = text2svg.toSVG(number.toString(), {
         fontSize: unitNumberFontSize
     })
 
+    const unitNumberLineHeight = (await sharp(Buffer.from(unitNumber.svg)).metadata()).height;
+
+    console.log(unitNumberLineHeight);
+
+    const unitLineHeight = unitIconSize < unitNumberLineHeight ? unitNumberLineHeight : unitIconSize;
+
     const unit = await sharp({
         create: {
             width: unitWidth,
-            height: unitIconSize,
+            height: unitLineHeight,
             channels: 4,
             background: {
                 r: 0,
@@ -457,12 +541,15 @@ async function genItemUnit(unitIcon, number) {
             },
             {
                 input: Buffer.from(unitNumber.svg),
-                top: Math.ceil((unitIconSize - unitNumberLineHeight) / 2),
+                top: Math.ceil((unitIconSize - unitLineHeight) / 2),
                 left: unitIconSize + 6
             }
         ])
         .png()
         .toBuffer()
+
+        
+    console.log(12);
 
     return unit;
 
@@ -483,12 +570,15 @@ async function genText(textAry, maxWidth) {
     // 遍历生成每一行
     for (const [index, item] of Object.entries(textAry)) {
 
-        const { text, fontSize } = item;
+        let { text, fontSize } = item;
 
         let textItem, textItemHeight;
+        
+        if (!text) text = '[群成员不存在]';
 
         const textTemp = text2svg.toSVG(text, { fontSize });
 
+        // 判断昵称生成出来的长度，然后要不要 resize
         if (textTemp.width > maxWidth) {
             textItem = await sharp(Buffer.from(textTemp.svg)).resize(maxWidth).png().toBuffer();
             textItemHeight = (await sharp(textItem).metadata()).height;

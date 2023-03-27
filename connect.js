@@ -23,6 +23,7 @@ const connectDb = new Promise((resolve,reject)=>{
 const StandOnTheStreetSchema = new Schema({
     group: Number,
     qq: Number,
+    notify: Boolean,
     score: {
         type: Number,
         default: 0

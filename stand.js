@@ -1,13 +1,16 @@
 // 站街主方法
 
-const { bot } = process.env.ENV == 'dev' ? require('./emulators/a') : require('../../a');
-const { StandOnTheStreet } = process.env.ENV == 'dev' ? require('./connect') : require('../../connect');
+const env = process.env.ENV || 'prod';
+
+const { bot } = env == 'dev' ? require('./emulators/a') : require('../../../app');
+const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 const Text2svg = require('text2svg');
-const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+// const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/HarmonyOS_Sans_SC_Medium.ttf'));
+const text2svg = new Text2svg(path.resolve(__dirname, 'fonts/SourceHanSerifSC-Heavy.ttf'));
 
 const { genAvatar, genRoundedRect, genHr, formatTs, randomRange, randomArrayElem, getDayDate } = require('./common');
 const contents = require('./content.json').stand;
@@ -22,8 +25,8 @@ let content = '';
 const contentFontSize = 18;
 const secondaryFontSize = 16;
 const iconSize = 24;
-const contentLineHeight = iconSize;
-const secondaryLineHeight = secondaryFontSize + 3;
+const contentLineHeight = contentFontSize + 10;
+const secondaryLineHeight = secondaryFontSize + 5;
 const cardWidth = 400;
 const cardPadding = 30;
 const cardChildrenMargin = 20;
@@ -50,12 +53,18 @@ let innerCardHeight;
  * @param {Message} message 
  * @param {Date} timestamp 
  * @param {String} filePath
+ * @param {String} type random | call
  */
-module.exports = async function (message, timestamp, filePath) {
+module.exports = async function (message, timestamp, filePath, type) {
 
     const ts = timestamp.getTime();
 
+    // 获取今日零时的ts
+    const dayTs = getDayDate(timestamp).getTime();
+
     let messageChain = [];
+
+    let notifyList = [];
 
     // 判断是否有记录以及时限
     result = await StandOnTheStreet.findOne({ qq: message.sender.id, group: message.sender.group.id });
@@ -84,7 +93,7 @@ module.exports = async function (message, timestamp, filePath) {
             }
         ]);
 
-    } else if (result.nextTime > ts) {
+    } else if (result.nextTime > ts && env != 'dev') {
 
         content = randomArrayElem(contents.many) + '\n';
 
@@ -105,142 +114,234 @@ module.exports = async function (message, timestamp, filePath) {
 
     }
 
-    // 获取群员列表
-    const memberList = await bot.getGroupMemberList(message.sender.group.id).then(m => m.map(e => e.id));
-    console.log(memberList.length);
-
-    // 总共最多抽多少人
-    let totalCountMax = randomRange(0, 30);
-
-    // 最多抽20人，小于20最多群员列表
-    const friendsCountMax = memberList.length >= 20 ? 19 : memberList.length - 1;
-
-    // 抽多少人（真随机
-    let friendsCount = randomRange(0, friendsCountMax);
-    console.log('friendsCount 1', friendsCount);
-
-    // 最多抽多少路人，总和最多30人
-    const othersCountMax = friendsCount > totalCountMax ? 0 : totalCountMax - friendsCount;
-
-    // 抽多少路人
-    const othersCount = randomRange(0, othersCountMax);
-    console.log('othersCount', othersCount);
-    const others = {
-        score: randomRange(0, 5) * othersCount * 50,
-        count: othersCount
-    };
-
-    // 接下来抽幸运群友
-    let friends = [];
-    let friendList = [];
+    let intoDetail = {};
     let outList = [];
-    let friendsScore = 0;
 
-    // 首先要确定我们只能抽有钱的，而且不是自己
-    // 而且是今天造访他人小于2次的
-    const candidateList = await StandOnTheStreet.find({
-        qq: { $ne: message.sender.id },
-        group: message.sender.group.id,
-        score: { $gt: 0 }
-    }).then(r => {
+    // 如果是随机
+    switch (type) {
 
-        let result = [];
+        case 'random':
 
-        // 获取今日零时的ts
-        const dayTs = getDayDate(timestamp).getTime();
+            // 获取群员列表
+            const memberList = await bot.getGroupMemberList(message.sender.group.id).then(m => m.map(e => e.id));
+            if (env == 'dev') console.log(memberList.length);
 
-        // 遍历结果
-        r.forEach(e => {
+            // 总共最多抽多少人
+            let totalCountMax = randomRange(0, 30);
 
-            // 获取造访记录
-            const { out } = e;
+            // 最多抽20人，小于20最多群员列表
+            const friendsCountMax = memberList.length >= 20 ? 19 : memberList.length - 1;
 
-            // 日造访计数
-            let dayOut = 0;
+            // 抽多少人（真随机
+            let friendsCount = randomRange(0, friendsCountMax);
+            if (env == 'dev') console.log('friendsCount 1', friendsCount);
 
-            out.forEach(e1 => {
+            // 最多抽多少路人，总和最多30人
+            const othersCountMax = friendsCount > totalCountMax ? 0 : totalCountMax - friendsCount;
 
-                if (e1.ts && e1.ts >= dayTs) dayOut ++;
+            // 抽多少路人
+            const othersCount = randomRange(0, othersCountMax);
+            if (env == 'dev') console.log('othersCount', othersCount);
+            const others = {
+                score: randomRange(0, 5) * othersCount * 50,
+                count: othersCount
+            };
 
+            // 接下来抽幸运群友
+            let friends = [];
+            let friendList = [];
+            let friendsScore = 0;
+
+            // 首先要确定我们只能抽有钱的，而且不是自己
+            // 而且是今天造访他人小于2次的
+            const candidateList = await StandOnTheStreet.find({
+                qq: { $ne: message.sender.id },
+                group: message.sender.group.id,
+                score: { $gt: 0 }
+            }).then(r => {
+
+                let result = [];
+
+                // 遍历结果
+                r.forEach(e => {
+
+                    // 获取造访记录
+                    const { out } = e;
+
+                    // 日造访计数
+                    let dayOut = 0;
+
+                    out.forEach(e1 => {
+
+                        if (e1.ts && e1.ts >= dayTs) dayOut++;
+
+                    })
+
+                    if (dayOut < 2) result.push(e.qq);
+
+                })
+
+                return result;
+
+            });
+
+            // 还要判断能抽的是否大于了本身人数
+            friendsCount = candidateList.length < friendsCount ? candidateList.length : friendsCount;
+
+            if (env == 'dev') console.log('friendsCount 2', friendsCount);
+
+            if (friendsCount) {
+
+                let j = 0;
+
+                function pickFriend() {
+
+                    if (j >= 3) {
+                        j = 0;
+                        return;
+                    }
+
+                    const selected = candidateList[randomRange(0, candidateList.length - 1)];
+                    j++;
+                    if (friendList.indexOf(selected) == -1) {
+                        const score = randomRange(0, 6) * 50;
+                        return {
+                            // into 是针对站街人的 into 生成的
+                            into: {
+                                qq: selected,
+                                score
+                            },
+                            // out 是针对逛街人的 out 生成的
+                            out: {
+                                qq: message.sender.id,
+                                score,
+                                ts
+                            }
+                        };
+                    } else {
+                        pickFriend();
+                    }
+                }
+                for (let i = 0; i < friendsCount; i++) {
+                    const selected = pickFriend();
+                    if (!selected) break;
+                    // 加入 friends 用于组装 into
+                    friends.push(selected.into);
+                    friendList.push(selected.into.qq);
+                    friendsScore += selected.into.score;
+                    // 加入 outList 用于组装 out
+                    outList.push({
+                        qq: selected.into.qq,
+                        data: selected.out
+                    })
+                }
+
+            }
+
+            // 组装！
+            intoDetail = {
+                ts,
+                score: friendsScore + others.score,
+                others
+            }
+            if (friendsCount) {
+                intoDetail.friends = friends;
+            }
+
+            break;
+
+        // 摇人
+        case 'call':
+
+            let at = -1;
+            let atCount = 0;
+
+            message.messageChain.forEach(chain => {
+                if (chain.type == 'At') {
+                    at = chain.target;
+                    atCount ++;
+                };
             })
 
-            if (dayOut < 2) result.push(e.qq);
-
-        })
-
-        return result;
-        
-    });
-
-    // 还要判断能抽的是否大于了本身人数
-    friendsCount = candidateList.length < friendsCount ? candidateList.length : friendsCount;
-
-    console.log('friendsCount 2', friendsCount);
-
-    if (friendsCount) {
-
-        let j = 0;
-
-        function pickFriend() {
-
-            if (j >= 3) {
-                j = 0;
+            // 如果没at
+            if (at == -1) {
+                message.quoteReply("您没有选择摇人对象。");
+                return;
+            }
+            
+            // 如果at太多
+            if (atCount > 1) {
+                message.quoteReply("一次只能光临一人哦。");
                 return;
             }
 
-            const selected = candidateList[randomRange(0, candidateList.length - 1)];
-            j++;
-            if (friendList.indexOf(selected) == -1) {
-                const score = randomRange(0, 6) * 50;
-                return {
-                    // into 是针对站街人的 into 生成的
-                    into: {
-                        qq: selected,
-                        score
-                    },
-                    // out 是针对逛街人的 out 生成的
-                    out: {
-                        qq: message.sender.id,
-                        score,
-                        ts
-                    }
-                };
-            } else {
-                pickFriend();
+            // 先确定此人是否站过街 或 没钱了
+            result = await StandOnTheStreet.findOne({ qq: at, group: message.sender.group.id, score: { $gt: 0 } });
+
+            if (!result) {
+                message.quoteReply("他已经没钱了。");
+                return;
             }
-        }
-        for (let i = 0; i < friendsCount; i++) {
-            const selected = pickFriend();
-            if (!selected) break;
-            // 加入 friends 用于组装 into
-            friends.push(selected.into);
-            friendList.push(selected.into.qq);
-            friendsScore += selected.into.score;
+
+            // 再判断此人今日是否造访过他人两次及以上
+            if (result.out) {
+
+                let dayOut = 0;
+
+                result.out.forEach(e => {
+
+                    if (e.ts && e.ts >= dayTs) dayOut++;
+
+                })
+
+                if (dayOut >= 2) {
+
+                    message.quoteReply(`他今天已经被榨${dayOut}次了，牛牛已经累了`);
+                    return;
+
+                }
+
+            }
+
+            // 配置输出
+            const score = randomRange(0, 12) * 50;
+
             // 加入 outList 用于组装 out
             outList.push({
-                qq: selected.into.qq,
-                data: selected.out
+                qq: at,
+                data: {
+                    qq: message.sender.id,
+                    score,
+                    ts
+                }
             })
-        }
 
+            intoDetail = {
+                ts,
+                score,
+                friends: [{
+                    qq: at,
+                    score
+                }],
+                others: {
+                    count: 0,
+                    score: 0
+                }
+            }
+
+            break;
+
+        default:
+            return;
     }
 
-    // 组装！
-    let intoDetail = {
-        ts,
-        score: friendsScore + others.score,
-        others
-    }
-    if (friendsCount) {
-        intoDetail.friends = friends;
-    }
 
     // 操作数据库
     const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
         $inc: {
             score: intoDetail.score,
-            "count.friends": friendsCount,
-            "count.others": others.count,
+            "count.friends": typeof (intoDetail.friends) == 'object' ? intoDetail.friends.length : 0,
+            "count.others": intoDetail.others.count,
             "stats.into": intoDetail.score
         },
         $addToSet: {
@@ -250,6 +351,8 @@ module.exports = async function (message, timestamp, filePath) {
             nextTime: ts + 12 * 60 * 60 * 1000
         }
     }, { upsert: true, new: true })
+
+    // 这里是操作光临的人的数据库
     if (outList.length != 0) {
 
         for (let [index, item] of Object.entries(outList)) {
@@ -266,7 +369,29 @@ module.exports = async function (message, timestamp, filePath) {
                         ts
                     }
                 }
-            }, { upsert: true })
+            }, {
+                upsert: true,
+                new: true
+            })
+
+            // 这里是用于通知对方的
+
+            let notifyStatus = 0;
+
+            if (typeof (result.notify) == 'undefined') {
+                notifyStatus = -1;
+                await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, { $set: { notify: true } });
+            } else if (result.notify) {
+                notifyStatus = 1;
+            }
+
+            notifyList.push({
+                qq,
+                out: data.qq,
+                detail: data.score,
+                score: result.score,
+                status: notifyStatus
+            });
         }
 
     }
@@ -291,10 +416,10 @@ module.exports = async function (message, timestamp, filePath) {
     }
 
     // 判断人均
-    const per = Math.ceil( cardDataObj.data.total.score / cardDataObj.data.total.count );
-    content = per == 0 ? randomArrayElem(contents.succeed.none) : randomArrayElem(contents.succeed.normal);
+    const per = Math.ceil(cardDataObj.data.total.score / cardDataObj.data.total.count);
+    content = (per == 0 || isNaN(per)) ? randomArrayElem(contents.succeed.none) : randomArrayElem(contents.succeed.normal);
 
-    console.log('cardDataObj', cardDataObj);
+    if (env == 'dev') console.log('cardDataObj', cardDataObj);
 
     messageChain.push({
         type: 'At',
@@ -309,17 +434,46 @@ module.exports = async function (message, timestamp, filePath) {
     })
 
     // 生成整图
-  
+
     const imgBuffer = await genCard(cardDataObj);
 
-    fs.writeFileSync(filePath, imgBuffer);
+    // fs.writeFileSync(filePath, imgBuffer);
+
+    const imgB64 = imgBuffer.toString('base64');
 
     messageChain.push({
         type: 'Image',
-        path: filePath
+        // path: filePath
+        base64: imgB64
     })
 
-    message.reply(messageChain);
+    let r = await message.reply(messageChain);
+
+    console.log("信息发送");
+
+    // 发送提醒消息
+    if (outList.length != 0) {
+        for (const [index, item] of Object.entries(notifyList)) {
+
+            const { qq, detail, score, status } = item;
+
+            if (status == 0) continue;
+
+            let msg = '';
+            msg += `[站街提醒] 群 ${message.sender.group.name} (${message.sender.group.id})\n`;
+            msg += `您光临了 ${message.sender.memberName} (${message.sender.id})\n`;
+            msg += `共计消费 ${detail}，余额 ${score}`;
+
+            if (status == -1) msg += "\n这是您在该群第一次收到该通知，提醒功能默认开启，可在群内发送“关闭站街提醒”或回复该消息“T”或“TD”退订";
+
+            r = await bot.sendTempMessage(msg, qq, message.sender.group.id);
+
+            console.log("通知信息发送");
+        }
+    }
+
+    // 删除文件捏
+    // if (env != 'dev') fs.unlinkSync(filePath);
 
 }
 
@@ -331,10 +485,12 @@ module.exports = async function (message, timestamp, filePath) {
  * @param {Number} count 
  * @return {Buffer}
  */
- async function genDetailItem (title, score, count) {
+async function genDetailItem(title, score, count) {
 
     const scoreIconLeft = 58;
     const countIconLeft = 193;
+
+    const iconTop = ( contentLineHeight - 24 ) / 2 + 2;
 
     const titleText = text2svg.toSVG(title, {
         fontSize: contentFontSize
@@ -367,7 +523,7 @@ module.exports = async function (message, timestamp, filePath) {
             },
             {
                 input: scoreIcon,
-                top: 0,
+                top: iconTop,
                 left: scoreIconLeft
             },
             {
@@ -377,7 +533,7 @@ module.exports = async function (message, timestamp, filePath) {
             },
             {
                 input: countIcon,
-                top: 0,
+                top: iconTop,
                 left: countIconLeft
             },
             {
@@ -397,8 +553,8 @@ module.exports = async function (message, timestamp, filePath) {
  * 生成头像组卡片
  * @param {Array} friendsList 
  */
-async function genAvatarGroup (friendsList) {
-    
+async function genAvatarGroup(friendsList) {
+
     avatarItemLineCount = Math.ceil(friendsList.length / avatarInlineCount);
     avatarGroupHeight = avatarItemLineCount * avatarItemHeight + (avatarItemLineCount - 1) * avatarMargin;
 
@@ -412,8 +568,8 @@ async function genAvatarGroup (friendsList) {
 
         avatarItemList.push({
             input: avatarItem,
-            top: Math.floor(index / avatarInlineCount) * ( avatarItemHeight + avatarMargin ),
-            left: Math.ceil( (index % avatarInlineCount) * (avatarItemMargin + avatarItemWidth) )
+            top: Math.floor(index / avatarInlineCount) * (avatarItemHeight + avatarMargin),
+            left: Math.ceil((index % avatarInlineCount) * (avatarItemMargin + avatarItemWidth))
         })
 
     }
@@ -445,11 +601,11 @@ async function genAvatarGroup (friendsList) {
  * @param {Number} score 
  * @return {Buffer}
  */
-async function genAvatarItem (qq, score) {
+async function genAvatarItem(qq, score) {
 
     const avatar = await genAvatar(qq, avatarSize);
 
-    const scoreText = text2svg.toSVG(score.toString(), {
+    const scoreText = text2svg.toSVG((score == 0 || score == '0') ? "白嫖" : score.toString(), {
         fontSize: secondaryFontSize
     });
 
@@ -475,7 +631,7 @@ async function genAvatarItem (qq, score) {
             {
                 input: Buffer.from(scoreText.svg),
                 top: avatarSize,
-                left: Math.ceil( ( avatarItemWidth - scoreText.width ) / 2 )
+                left: Math.ceil((avatarItemWidth - scoreText.width) / 2)
             }
         ])
         .png()
@@ -490,7 +646,7 @@ async function genAvatarItem (qq, score) {
  * @param {Object} dataObj 
  * @return {Buffer}
  */
-async function genInnerCard (dataObj) {
+async function genInnerCard(dataObj) {
 
     let compositeList = [];
 
@@ -498,10 +654,10 @@ async function genInnerCard (dataObj) {
     let currentTop = innerCardPadding;
 
     const { total, others, friends } = dataObj;
-    
+
     // 生成分割线
     const hrItem = await genHr(innerCardChildrenWidth, "#bdbdbd", 2);
-    
+
     // 数据
 
     // 总计
@@ -512,8 +668,8 @@ async function genInnerCard (dataObj) {
         left: innerCardPadding
     })
     currentTop += contentLineHeight + innerCardChildrenMargin;
-    
-    
+
+
     // 路人
     if (others.count != 0) {
 
@@ -532,9 +688,9 @@ async function genInnerCard (dataObj) {
             left: innerCardPadding
         })
         currentTop += contentLineHeight + innerCardChildrenMargin;
-        
+
     }
-    
+
     // 群友
     if (friends.list) {
 
@@ -545,9 +701,9 @@ async function genInnerCard (dataObj) {
             left: innerCardPadding
         })
         currentTop += innerCardChildrenMargin;
-        
+
         if (friends.list) {
-            
+
             const friendsItem = await genDetailItem("群友", friends.score, friends.list.length);
             compositeList.push({
                 input: friendsItem,
@@ -555,7 +711,7 @@ async function genInnerCard (dataObj) {
                 left: innerCardPadding
             })
             currentTop += contentLineHeight + innerCardChildrenMargin;
-            
+
             // 头像组
             const avatarGroupItem = await genAvatarGroup(friends.list);
             compositeList.push({
@@ -580,7 +736,7 @@ async function genInnerCard (dataObj) {
         left: 0
     })
 
-    const innerCard = await sharp ({
+    const innerCard = await sharp({
         create: {
             width: innerCardWidth,
             height: innerCardHeight,
@@ -606,23 +762,25 @@ async function genInnerCard (dataObj) {
  * @param {Number} score 
  * @param {Number} count 
  */
-async function genDataItem (score, count) {
+async function genDataItem(score, count) {
 
     const scoreIcon = await sharp(path.resolve(__dirname, 'assets/stand_wallet.png')).toBuffer();
     const countIcon = await sharp(path.resolve(__dirname, 'assets/stand_person_total.png')).toBuffer();
+
+    const iconTop = ( contentLineHeight - 20 ) / 2;
 
     const scoreText = text2svg.toSVG(`${score} 硬币`, {
         fontSize: contentFontSize
     });
 
-    const scoreIconLeft = Math.ceil( ( innerCardWidth / 2 - ( iconSize + 2 + scoreText.width ) ) / 2 );
+    const scoreIconLeft = Math.ceil((innerCardWidth / 2 - (iconSize + 2 + scoreText.width)) / 2);
     const scoreTextLeft = scoreIconLeft + iconSize + 2;
-    
+
     const countText = text2svg.toSVG(`${count} 人次`, {
         fontSize: contentFontSize
     });
-    
-    const countIconLeft = Math.ceil( innerCardWidth / 2 + ( innerCardWidth / 2 - ( iconSize + 2 + countText.width ) ) / 2 );
+
+    const countIconLeft = Math.ceil(innerCardWidth / 2 + (innerCardWidth / 2 - (iconSize + 2 + countText.width)) / 2);
     const countTextLeft = countIconLeft + iconSize + 2;
 
     const dataItem = await sharp({
@@ -641,7 +799,7 @@ async function genDataItem (score, count) {
         .composite([
             {
                 input: scoreIcon,
-                top: 0,
+                top: iconTop,
                 left: scoreIconLeft
             },
             {
@@ -651,7 +809,7 @@ async function genDataItem (score, count) {
             },
             {
                 input: countIcon,
-                top: 0,
+                top: iconTop,
                 left: countIconLeft
             },
             {
@@ -671,7 +829,7 @@ async function genDataItem (score, count) {
  * 生成整张卡片
  * @param {Object} dataObj
  */
-async function genCard (dataObj) {
+async function genCard(dataObj) {
 
     let compositeList = [];
     let currentTop = cardPadding;
@@ -705,7 +863,7 @@ async function genCard (dataObj) {
 
     const nickTextHeight = (await sharp(nickText).metadata()).height;
 
-    const nickTop = Math.ceil( cardPadding + ( avatarSize - nickTextHeight ) / 2 )
+    const nickTop = Math.ceil(cardPadding + (avatarSize - nickTextHeight) / 2)
     const nickLeft = cardPadding + avatarSize + 12;
 
     compositeList.push({
@@ -725,7 +883,7 @@ async function genCard (dataObj) {
         left: cardPadding
     })
     currentTop += contentLineHeight + cardChildrenMargin;
-    
+
     // 生成 inner 卡片
     const innerCard = await genInnerCard(data);
     compositeList.push({
@@ -751,32 +909,32 @@ async function genCard (dataObj) {
     compositeList.push({
         input: Buffer.from(footerText.svg),
         top: currentTop,
-        left: Math.ceil( ( cardWidth - footerText.width ) / 2 )
+        left: Math.ceil((cardWidth - footerText.width) / 2)
     })
     currentTop += secondaryLineHeight + 2;
-    
+
     const tsText = text2svg.toSVG(formatTs(timestamp), {
         fontSize: secondaryFontSize
     })
     compositeList.push({
         input: Buffer.from(tsText.svg),
         top: currentTop,
-        left: Math.ceil( ( cardWidth - tsText.width ) / 2 )
+        left: Math.ceil((cardWidth - tsText.width) / 2)
     })
     currentTop += secondaryLineHeight + 2;
-    
+
     const versionText = text2svg.toSVG(version, {
         fontSize: secondaryFontSize
     })
     compositeList.push({
         input: Buffer.from(versionText.svg),
         top: currentTop,
-        left: Math.ceil( ( cardWidth - versionText.width ) / 2 )
+        left: Math.ceil((cardWidth - versionText.width) / 2)
     })
     currentTop += secondaryLineHeight + cardChildrenMargin;
-    
+
     const cardHeight = currentTop;
-    
+
     const card = await sharp({
         create: {
             width: cardWidth,
