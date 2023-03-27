@@ -112,8 +112,11 @@ async function index(message) {
     const filePath = path.resolve(__dirname, `temp/${ts}.png`);
 
     if (msgCmd.includes("站街")) {
-        let force = (msgArgv.force || msgArgv.f) ? true : false;
-        stand(message, timestamp, filePath, 'random', force);
+        stand(message, timestamp, filePath, 'random', (msgArgv.force || msgArgv.f) ? true : false);
+    }
+
+    if (msgCmd.includes("强制站街")) {
+        stand(message, timestamp, filePath, 'random', true);
     }
 
     if (msgCmd.includes("站街摇人") || msgCmd.includes("炒") || msgCmd.includes("超") || msgCmd.includes("操")) {

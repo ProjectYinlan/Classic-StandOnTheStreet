@@ -438,7 +438,7 @@ module.exports = async function (message, timestamp, filePath, type, force) {
             into: intoDetail
         },
         $set: {
-            nextTime: ts + (12 * 60 * 60 * 1000) + (canForce ? (6 * 60 * 60 * 1000) : 0),
+            nextTime: ts + (12 * 60 * 60 * 1000) + (canForce ? (18 * 60 * 60 * 1000) : 0),
             force: canForce
         }
     }, { upsert: true, new: true })
