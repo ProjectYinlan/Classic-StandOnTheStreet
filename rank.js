@@ -2,7 +2,7 @@
 
 const env = process.env.ENV || 'prod';
 
-const { bot } = env == 'dev' ? require('./emulators/a') : require('../../../app');
+const { bot } = env == 'dev' ? require('./emulators/a') : global;
 const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 const sharp = require('sharp');

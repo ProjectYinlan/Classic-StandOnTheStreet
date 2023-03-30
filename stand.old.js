@@ -1,6 +1,6 @@
 // 站街主方法
 
-const { bot } = process.env.ENV == 'dev' ? require('./emulators/a') : require('../../a');
+const { bot } = process.env.ENV == 'dev' ? require('./emulators/a') : global;
 const { StandOnTheStreet } = process.env.ENV == 'dev' ? require('./connect') : require('../../connect');
 
 const sharp = require('sharp');
