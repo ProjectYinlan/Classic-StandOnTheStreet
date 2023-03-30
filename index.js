@@ -120,7 +120,7 @@ async function index(message) {
     }
 
     if (msgCmd.includes("站街摇人") || msgCmd.includes("炒") || msgCmd.includes("超") || msgCmd.includes("操")) {
-        stand(message, timestamp, filePath, 'call');
+        stand(message, timestamp, filePath, 'call', (msgArgv.force || msgArgv.f) ? true : false);
     }
 
     if (msg == "开启站街提醒") {
