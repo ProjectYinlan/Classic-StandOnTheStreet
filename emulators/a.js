@@ -419,6 +419,7 @@ module.exports = {
                     group: { id: 259565487, name: '洇岚窝', permission: 'MEMBER' }
                 })
             })
-        }
+        },
+        sendTempMessage(msg, qq, group) {}
     }
 }

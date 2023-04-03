@@ -64,8 +64,21 @@ const StandOnTheStreetSchema = new Schema({
 });
 const StandOnTheStreet = mongoose.model('StandOnTheStreet', StandOnTheStreetSchema);
 
+const WalletSchema = new Schema({
+    group: Number,
+    qq: Number,
+    balance: Number,
+    bill: [{
+        change: Number,
+        desc: String,
+        timestamp: Number
+    }]
+});
+const Wallet = mongoose.model('Wallet', WalletSchema);
+
 // 导出模块
 module.exports = {
 	StandOnTheStreet,
+    Wallet,
 	connectDb
 }

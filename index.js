@@ -133,11 +133,11 @@ async function index(message) {
         message.reply(r.msg);
     }
 
-    if (msg == "我的站街工资") {
-        message.quoteReply("该方法未来将被废弃，请使用 “站街钱包” 代替")
+    if (msg == "我的站街工资" || msg == "站街钱包") {
+        message.quoteReply("该方法未来将被废弃，请使用 “站街数据” 代替，查看钱包请使用 “PY钱包”。")
         info(message, timestamp, filePath);
     }
-    if (msg == "站街钱包") {
+    if (msg == "站街数据") {
         info(message, timestamp, filePath);
     }
 
@@ -145,7 +145,7 @@ async function index(message) {
         rank(message, timestamp, filePath, 'count');
     }
     if (msg == "站街富豪榜") {
-        rank(message, timestamp, filePath, 'score');
+        message.quoteReply("因站街工资迁移至PY钱包，故该排行榜已移除。")
     }
     if (msg == "站街赚钱榜") {
         rank(message, timestamp, filePath, 'make_score');

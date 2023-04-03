@@ -3,7 +3,7 @@
 const env = process.env.ENV || 'prod';
 
 const { bot } = env == 'dev' ? require('./emulators/a') : global;
-const { StandOnTheStreet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
+const { StandOnTheStreet, Wallet } = env == 'dev' ? require('./connect') : require('../../../db').schemas;
 
 const sharp = require('sharp');
 const fs = require('fs');
@@ -156,8 +156,11 @@ module.exports = async function (message, timestamp, filePath, type, force) {
     let outList = [];
     let canForce = false;
 
+    // 获取钱包
+    let walletResult = await Wallet.findOne({ qq: message.sender.id, group: message.sender.group.id });
+
     // 富豪手续费
-    if (result.score > 20000) {
+    if (walletResult || walletResult.balance > 20000) {
 
         // 获取最近五次数据
         const recent = result.into.slice(-5).map(e => e.score);
@@ -169,13 +172,18 @@ module.exports = async function (message, timestamp, filePath, type, force) {
         const commission = Math.round(avg * 0.2);
 
         // 扣费
-        const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
+        // const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
+        //     $inc: {
+        //         score: 0 - commission
+        //     }
+        // }, { new: true })
+        const newResult = await Wallet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
             $inc: {
-                score: 0 - commission
+                balance: 0 - commission
             }
         }, { new: true })
 
-        msgContent += `\n已扣除富豪手续费 ${commission}，余额为 ${newResult.score}`;
+        msgContent += `\n已扣除富豪手续费 ${commission}，余额为 ${newResult.balance}`;
 
     }
 
@@ -192,16 +200,21 @@ module.exports = async function (message, timestamp, filePath, type, force) {
         const commission = Math.round(avg * 0.5);
 
         // 扣费
-        const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
+        // const newResult = await StandOnTheStreet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
+        //     $inc: {
+        //         score: 0 - commission
+        //     }
+        // }, { new: true })
+        const newResult = await Wallet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
             $inc: {
-                score: 0 - commission
+                balance: 0 - commission
             }
         }, { new: true })
 
         // 抽一下 杨威 buff
         canForce = Math.random() < 0.3 ? true : false;
 
-        msgContent += `\n已扣除强制站街手续费 ${commission}，余额为 ${newResult.score}`;
+        msgContent += `\n已扣除强制站街手续费 ${commission}，余额为 ${newResult.balance}`;
 
         if (canForce) msgContent += '\n恭喜您，获得杨威Buff，站街CD增加6小时';
 
@@ -244,11 +257,72 @@ module.exports = async function (message, timestamp, filePath, type, force) {
 
             // 首先要确定我们只能抽有钱的，而且不是自己
             // 而且是今天造访他人小于2次的
-            const candidateList = await StandOnTheStreet.find({
-                qq: { $ne: message.sender.id },
-                group: message.sender.group.id,
-                score: { $gt: 0 }
-            }).then(r => {
+
+            const candidateList = await StandOnTheStreet.aggregate(
+                [
+                    {
+                        "$match" : {
+                            "group" : message.sender.group.id,
+                            "qq" : {
+                                "$ne" : message.sender.id
+                            }
+                        }
+                    }, 
+                    {
+                        "$lookup" : {
+                            "from" : "wallets",
+                            "let" : {
+                                "qq" : "$qq",
+                                "group" : "$group"
+                            },
+                            "pipeline" : [
+                                {
+                                    "$match" : {
+                                        "$expr" : {
+                                            "$and" : [
+                                                {
+                                                    "$eq" : [
+                                                        "$qq",
+                                                        "$$qq"
+                                                    ]
+                                                },
+                                                {
+                                                    "$eq" : [
+                                                        "$group",
+                                                        "$$group"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "as" : "wallets"
+                        }
+                    }, 
+                    {
+                        "$project" : {
+                            "qq" : 1.0,
+                            "group" : 1.0,
+                            "force" : 1.0,
+                            "out" : 1.0,
+                            "nextTs" : 1.0,
+                            "balance" : {
+                                "$arrayElemAt" : [
+                                    "$wallets.balance",
+                                    0.0
+                                ]
+                            }
+                        }
+                    }
+                ]
+            ).then(r => {
+
+            // const candidateList = await StandOnTheStreet.find({
+            //     qq: { $ne: message.sender.id },
+            //     group: message.sender.group.id,
+            //     score: { $gt: 0 }
+            // }).then(r => {
 
                 let result = [];
 
@@ -366,9 +440,71 @@ module.exports = async function (message, timestamp, filePath, type, force) {
             }
 
             // 先确定此人是否站过街 或 没钱了
-            result = await StandOnTheStreet.findOne({ qq: at, group: message.sender.group.id, score: { $gt: 0 } });
+            // result = await StandOnTheStreet.findOne({ qq: at, group: message.sender.group.id, score: { $gt: 0 } });
+            result = await StandOnTheStreet.aggregate(
+                [
+                    {
+                        "$match" : {
+                            "group" : message.sender.group.id,
+                            "qq" : at
+                        }
+                    }, 
+                    {
+                        "$lookup" : {
+                            "from" : "wallets",
+                            "let" : {
+                                "qq" : "$qq",
+                                "group" : "$group"
+                            },
+                            "pipeline" : [
+                                {
+                                    "$match" : {
+                                        "$expr" : {
+                                            "$and" : [
+                                                {
+                                                    "$eq" : [
+                                                        "$qq",
+                                                        "$$qq"
+                                                    ]
+                                                },
+                                                {
+                                                    "$eq" : [
+                                                        "$group",
+                                                        "$$group"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "as" : "wallets"
+                        }
+                    }, 
+                    {
+                        "$project" : {
+                            "qq" : 1.0,
+                            "group" : 1.0,
+                            "force" : 1.0,
+                            "out" : 1.0,
+                            "nextTs" : 1.0,
+                            "balance" : {
+                                "$arrayElemAt" : [
+                                    "$wallets.balance",
+                                    0.0
+                                ]
+                            }
+                        }
+                    }
+                ]
+            )
 
             if (!result) {
+                message.quoteReply("他还没站过街。");
+                return;
+            }
+
+            if (result.balance <= 0) {
                 message.quoteReply("他已经没钱了。");
                 return;
             }
@@ -442,12 +578,37 @@ module.exports = async function (message, timestamp, filePath, type, force) {
             force: canForce
         }
     }, { upsert: true, new: true })
+    const newWalletResult = await Wallet.findOneAndUpdate({ qq: message.sender.id, group: message.sender.group.id }, {
+        $inc: {
+            balance: intoDetail.score
+        },
+        $addToSet: {
+            bill: {
+                change: intoDetail.score,
+                desc: "站街 - 收入",
+                timestamp: ts
+            }
+        }
+    }, { upsert: true, new: true })
 
     // 这里是操作光临的人的数据库
     if (outList.length != 0) {
 
         for (let [index, item] of Object.entries(outList)) {
             const { qq, data } = item;
+            result = await Wallet.findOneAndUpdate({ qq, group: message.sender.group.id }, {
+                $inc: {
+                    balance: 0 - data.score
+                },
+                $addToSet: {
+                    change: 0 - data.score,
+                    desc: "站街 - 支出",
+                    timestamp: ts
+                }
+            }, {
+                upsert: true,
+                new: true
+            })
             result = await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, {
                 $inc: {
                     score: 0 - data.score,
@@ -501,7 +662,7 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                 list: intoDetail.friends
             },
         },
-        score: newResult.score,
+        score: newWalletResult.balance,
         count: newResult.count.friends + newResult.count.others,
         timestamp
     }

@@ -104,31 +104,31 @@ module.exports = async function (message, timestamp, filePath, type) {
 
             break;
 
-        // 站街富豪榜
-        case 'score':
+        // // 站街富豪榜
+        // case 'score':
 
-            result = await StandOnTheStreet.aggregate([
-                {
-                    $match: {
-                        group: group.id
-                    }
-                },
-                {
-                    $sort: {
-                        "score": -1
-                    }
-                },
-                {
-                    $limit: limit
-                },
-                {
-                    $addFields: {
-                        number: "$score"
-                    }
-                }
-            ])
+        //     result = await StandOnTheStreet.aggregate([
+        //         {
+        //             $match: {
+        //                 group: group.id
+        //             }
+        //         },
+        //         {
+        //             $sort: {
+        //                 "score": -1
+        //             }
+        //         },
+        //         {
+        //             $limit: limit
+        //         },
+        //         {
+        //             $addFields: {
+        //                 number: "$score"
+        //             }
+        //         }
+        //     ])
 
-            break;
+        //     break;
 
         // 站街赚钱榜
         case 'make_score':
