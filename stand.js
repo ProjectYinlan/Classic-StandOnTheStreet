@@ -160,7 +160,7 @@ module.exports = async function (message, timestamp, filePath, type, force) {
     let walletResult = await Wallet.findOne({ qq: message.sender.id, group: message.sender.group.id });
 
     // 富豪手续费
-    if (walletResult || walletResult.balance > 20000) {
+    if (walletResult && walletResult.balance > 20000) {
 
         // 获取最近五次数据
         const recent = result.into.slice(-5).map(e => e.score);
