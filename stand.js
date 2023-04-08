@@ -314,6 +314,13 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                                 ]
                             }
                         }
+                    },
+                    {
+                        "$match" : {
+                            "balance" : {
+                                "$gt": 0
+                            }
+                        }
                     }
                 ]
             ).then(r => {
@@ -493,6 +500,13 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                                     "$wallets.balance",
                                     0.0
                                 ]
+                            }
+                        }
+                    },
+                    {
+                        "$match" : {
+                            "balance" : {
+                                "$gt": 0
                             }
                         }
                     }
