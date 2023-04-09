@@ -216,7 +216,7 @@ module.exports = async function (message, timestamp, filePath, type, force) {
 
         msgContent += `\n已扣除强制站街手续费 ${commission}，余额为 ${newResult.balance}`;
 
-        if (canForce) msgContent += '\n恭喜您，获得杨威Buff，站街CD增加6小时';
+        if (canForce) msgContent += '\n恭喜您，获得杨威Buff，站街CD增加18小时';
 
     }
 
