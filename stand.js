@@ -261,33 +261,33 @@ module.exports = async function (message, timestamp, filePath, type, force) {
             const candidateList = await StandOnTheStreet.aggregate(
                 [
                     {
-                        "$match" : {
-                            "group" : message.sender.group.id,
-                            "qq" : {
-                                "$ne" : message.sender.id
+                        "$match": {
+                            "group": message.sender.group.id,
+                            "qq": {
+                                "$ne": message.sender.id
                             }
                         }
-                    }, 
+                    },
                     {
-                        "$lookup" : {
-                            "from" : "wallets",
-                            "let" : {
-                                "qq" : "$qq",
-                                "group" : "$group"
+                        "$lookup": {
+                            "from": "wallets",
+                            "let": {
+                                "qq": "$qq",
+                                "group": "$group"
                             },
-                            "pipeline" : [
+                            "pipeline": [
                                 {
-                                    "$match" : {
-                                        "$expr" : {
-                                            "$and" : [
+                                    "$match": {
+                                        "$expr": {
+                                            "$and": [
                                                 {
-                                                    "$eq" : [
+                                                    "$eq": [
                                                         "$qq",
                                                         "$$qq"
                                                     ]
                                                 },
                                                 {
-                                                    "$eq" : [
+                                                    "$eq": [
                                                         "$group",
                                                         "$$group"
                                                     ]
@@ -297,18 +297,18 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                                     }
                                 }
                             ],
-                            "as" : "wallets"
+                            "as": "wallets"
                         }
-                    }, 
+                    },
                     {
-                        "$project" : {
-                            "qq" : 1.0,
-                            "group" : 1.0,
-                            "force" : 1.0,
-                            "out" : 1.0,
-                            "nextTs" : 1.0,
-                            "balance" : {
-                                "$arrayElemAt" : [
+                        "$project": {
+                            "qq": 1.0,
+                            "group": 1.0,
+                            "force": 1.0,
+                            "out": 1.0,
+                            "nextTs": 1.0,
+                            "balance": {
+                                "$arrayElemAt": [
                                     "$wallets.balance",
                                     0.0
                                 ]
@@ -316,8 +316,8 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                         }
                     },
                     {
-                        "$match" : {
-                            "balance" : {
+                        "$match": {
+                            "balance": {
                                 "$gt": 0
                             }
                         }
@@ -325,11 +325,11 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                 ]
             ).then(r => {
 
-            // const candidateList = await StandOnTheStreet.find({
-            //     qq: { $ne: message.sender.id },
-            //     group: message.sender.group.id,
-            //     score: { $gt: 0 }
-            // }).then(r => {
+                // const candidateList = await StandOnTheStreet.find({
+                //     qq: { $ne: message.sender.id },
+                //     group: message.sender.group.id,
+                //     score: { $gt: 0 }
+                // }).then(r => {
 
                 let result = [];
 
@@ -451,31 +451,31 @@ module.exports = async function (message, timestamp, filePath, type, force) {
             result = await StandOnTheStreet.aggregate(
                 [
                     {
-                        "$match" : {
-                            "group" : message.sender.group.id,
-                            "qq" : at
+                        "$match": {
+                            "group": message.sender.group.id,
+                            "qq": at
                         }
-                    }, 
+                    },
                     {
-                        "$lookup" : {
-                            "from" : "wallets",
-                            "let" : {
-                                "qq" : "$qq",
-                                "group" : "$group"
+                        "$lookup": {
+                            "from": "wallets",
+                            "let": {
+                                "qq": "$qq",
+                                "group": "$group"
                             },
-                            "pipeline" : [
+                            "pipeline": [
                                 {
-                                    "$match" : {
-                                        "$expr" : {
-                                            "$and" : [
+                                    "$match": {
+                                        "$expr": {
+                                            "$and": [
                                                 {
-                                                    "$eq" : [
+                                                    "$eq": [
                                                         "$qq",
                                                         "$$qq"
                                                     ]
                                                 },
                                                 {
-                                                    "$eq" : [
+                                                    "$eq": [
                                                         "$group",
                                                         "$$group"
                                                     ]
@@ -485,28 +485,21 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                                     }
                                 }
                             ],
-                            "as" : "wallets"
-                        }
-                    }, 
-                    {
-                        "$project" : {
-                            "qq" : 1.0,
-                            "group" : 1.0,
-                            "force" : 1.0,
-                            "out" : 1.0,
-                            "nextTs" : 1.0,
-                            "balance" : {
-                                "$arrayElemAt" : [
-                                    "$wallets.balance",
-                                    0.0
-                                ]
-                            }
+                            "as": "wallets"
                         }
                     },
                     {
-                        "$match" : {
-                            "balance" : {
-                                "$gt": 0
+                        "$project": {
+                            "qq": 1.0,
+                            "group": 1.0,
+                            "force": 1.0,
+                            "out": 1.0,
+                            "nextTs": 1.0,
+                            "balance": {
+                                "$arrayElemAt": [
+                                    "$wallets.balance",
+                                    0.0
+                                ]
                             }
                         }
                     }
@@ -518,7 +511,7 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                 return;
             }
 
-            if (result.balance <= 0) {
+            if (!result.balance || result.balance <= 0) {
                 message.quoteReply("他已经没钱了。");
                 return;
             }
@@ -603,7 +596,7 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                 timestamp: ts
             }
         }
-    }, { upsert: true, new: true })
+    }, { upsert: true, new: true });
 
     // 这里是操作光临的人的数据库
     if (outList.length != 0) {
@@ -615,14 +608,13 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                     balance: 0 - data.score
                 },
                 $addToSet: {
-                    change: 0 - data.score,
-                    desc: "站街 - 支出",
-                    timestamp: ts
+                    bill: {
+                        change: 0 - data.score,
+                        desc: "站街 - 支出",
+                        timestamp: ts
+                    }
                 }
-            }, {
-                upsert: true,
-                new: true
-            })
+            }, { upsert: true, new: true });
             result = await StandOnTheStreet.findOneAndUpdate({ qq, group: message.sender.group.id }, {
                 $inc: {
                     score: 0 - data.score,
@@ -635,10 +627,7 @@ module.exports = async function (message, timestamp, filePath, type, force) {
                         ts
                     }
                 }
-            }, {
-                upsert: true,
-                new: true
-            })
+            }, { upsert: true, new: true });
 
             // 这里是用于通知对方的
 
